@@ -1,0 +1,51 @@
+{
+  "$schema": "https://github.com/lppedd/idea-conventional-commit/raw/master/src/main/resources/defaults/conventionalcommit.schema.json",
+  "types": {
+    "refactor": {
+      "description": "Changes which neither fix a bug nor add a feature"
+    },
+    "fix": {
+      "description": "Changes which patch a bug"
+    },
+    "feat": {
+      "description": "Changes which introduce a new feature"
+    },
+    "build": {
+      "description": "Changes which affect the build system or external dependencies"
+    },
+    "chore": {
+      "description": "Changes which are not user-facing"
+    },
+    "test": {
+      "description": "Changes which add missing tests or fix existing ones"
+    },
+    "docs": {
+      "description": "Changes which affect documentation"
+    },
+    "ci": {
+      "description": "Changes which affect CI configuration files and scripts"
+    },
+    "revert": {
+      "description": "Changes which revert a previous commit"
+    }
+  },
+  "commonScopes": {
+    "android": {},
+    "jvm": {},
+    "native": {}
+  },
+  "footerTypes": [
+    {
+      "name": "Closes",
+      "description": "The commit closes issues or pull requests"
+    },
+    {
+      "name": "Co-authored-by",
+      "description": "The specified person co-authored the commit's changes"
+    },
+    {
+      "name": "Refs",
+      "description": "The commit references another commit by its hash"
+    }
+  ]
+}

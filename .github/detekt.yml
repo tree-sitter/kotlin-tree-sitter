@@ -1,0 +1,16 @@
+complexity:
+  TooManyFunctions:
+    active: false
+  LongParameterList:
+    functionThreshold: 7
+
+style:
+  WildcardImport:
+    active: false
+  ForbiddenComment:
+    active: false
+  UnusedPrivateProperty:
+    excludes:
+      - "**/commonMain/**"
+  ReturnCount:
+    max: 3

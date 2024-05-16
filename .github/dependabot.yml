@@ -1,0 +1,27 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: sunday
+    commit-message:
+      prefix: ci
+    labels: [dependencies]
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: monthly
+      day: saturday
+    commit-message:
+      prefix: build
+    labels: [dependencies]
+    groups:
+      gradle:
+        patterns: ["*"]
+        exclude-patterns:
+          - android-gradle
