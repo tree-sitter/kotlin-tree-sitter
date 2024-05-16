@@ -2,3 +2,7 @@
 	path = tree-sitter
 	url = https://github.com/tree-sitter/tree-sitter
 	shallow = true
+[submodule "tree-sitter-java"]
+	path = languages/java/tree-sitter-java
+	url = https://github.com/tree-sitter/tree-sitter-java
+	shallow = true

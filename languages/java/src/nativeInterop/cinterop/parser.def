@@ -1,0 +1,4 @@
+package = io.github.treesitter.ktreesitter.java.internal
+headers = tree-sitter-java.h
+staticLibraries = libtree-sitter-java.a
+staticLibraries.mingw = tree-sitter-java.lib
