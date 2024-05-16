@@ -12,6 +12,13 @@ actual class Language(language: Any) {
 
     actual val version = ts_language_version(self)
 
+    init {
+        check(version in MIN_COMPATIBLE_LANGUAGE_VERSION..LANGUAGE_VERSION) {
+            "Incompatible language version $version. " +
+                "Must be between $MIN_COMPATIBLE_LANGUAGE_VERSION and $LANGUAGE_VERSION."
+        }
+    }
+
     actual val symbolCount = ts_language_symbol_count(self)
 
     actual val stateCount = ts_language_state_count(self)
