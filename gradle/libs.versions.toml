@@ -1,0 +1,29 @@
+[versions]
+kotlin-stdlib = "1.9.23"
+#noinspection GradleDependency
+android-gradle = {strictly = "8.2.0"}
+dokka = "1.9.20"
+
+[libraries.kotlin-stdlib]
+module = "org.jetbrains.kotlin:kotlin-stdlib"
+version.ref = "kotlin-stdlib"
+
+[libraries.kotlin-test]
+module = "org.jetbrains.kotlin:kotlin-test"
+version.ref = "kotlin-stdlib"
+
+[libraries.dokka-base]
+module = "org.jetbrains.dokka:dokka-base"
+version.ref = "dokka"
+
+[plugins.kotlin-mpp]
+id = "org.jetbrains.kotlin.multiplatform"
+version.ref = "kotlin-stdlib"
+
+[plugins.android-library]
+id = "com.android.library"
+version.ref = "android-gradle"
+
+[plugins.dokka]
+id = "org.jetbrains.dokka"
+version.ref = "dokka"
