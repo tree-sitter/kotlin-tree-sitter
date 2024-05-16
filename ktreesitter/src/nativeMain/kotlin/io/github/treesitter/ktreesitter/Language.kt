@@ -34,10 +34,10 @@ actual class Language(language: Any) {
     actual fun fieldIdForName(name: String): UShort? =
         ts_language_field_id_for_name(self, name, name.length.convert()).takeIf { it > 0U }
 
-    actual fun nextState(state: UShort, symbol: UShort) =
+    actual fun nextState(state: UShort, symbol: UShort): UShort =
         ts_language_next_state(self, state, symbol)
 
-    actual fun lookaheadIterator(state: UShort) = LookaheadIterator(self, state)
+    actual fun lookaheadIterator(state: UShort) = LookaheadIterator(this, state)
 
     actual fun query(source: String) = Query(this, source)
 

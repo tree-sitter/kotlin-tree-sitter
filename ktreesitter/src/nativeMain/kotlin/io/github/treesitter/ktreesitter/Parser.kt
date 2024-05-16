@@ -1,6 +1,5 @@
 package io.github.treesitter.ktreesitter
 
-import cnames.structs.TSParser
 import io.github.treesitter.ktreesitter.internal.*
 import kotlinx.cinterop.*
 
@@ -10,7 +9,7 @@ actual class Parser actual constructor() {
         this.language = language
     }
 
-    private val self: CPointer<TSParser>? = ts_parser_new()
+    private val self = ts_parser_new()
 
     actual var language: Language? = null
         set(value) {

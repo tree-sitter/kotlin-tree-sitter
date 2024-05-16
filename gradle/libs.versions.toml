@@ -2,15 +2,28 @@
 kotlin-stdlib = "1.9.23"
 #noinspection GradleDependency
 android-gradle = {strictly = "8.2.0"}
+kotest = "5.9.0"
 dokka = "1.9.20"
 
 [libraries.kotlin-stdlib]
 module = "org.jetbrains.kotlin:kotlin-stdlib"
 version.ref = "kotlin-stdlib"
 
-[libraries.kotlin-test]
-module = "org.jetbrains.kotlin:kotlin-test"
-version.ref = "kotlin-stdlib"
+[libraries.kotest-engine]
+module = "io.kotest:kotest-framework-engine"
+version.ref = "kotest"
+
+[libraries.kotest-assertions]
+module = "io.kotest:kotest-assertions-core"
+version.ref = "kotest"
+
+[libraries.kotest-junit-runner]
+module = "io.kotest:kotest-runner-junit5"
+version.ref = "kotest"
+
+[libraries.kotest-junit-reporter]
+module = "io.kotest:kotest-extensions-junitxml"
+version.ref = "kotest"
 
 [libraries.dokka-base]
 module = "org.jetbrains.dokka:dokka-base"
@@ -24,6 +37,20 @@ version.ref = "kotlin-stdlib"
 id = "com.android.library"
 version.ref = "android-gradle"
 
+[plugins.kotest]
+id = "io.kotest.multiplatform"
+version.ref = "kotest"
+
 [plugins.dokka]
 id = "org.jetbrains.dokka"
 version.ref = "dokka"
+
+[bundles]
+kotest-core = [
+  "kotest-engine",
+  "kotest-assertions",
+]
+kotest-junit = [
+  "kotest-junit-runner",
+  "kotest-junit-reporter",
+]

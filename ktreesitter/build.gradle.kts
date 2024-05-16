@@ -16,6 +16,7 @@ plugins {
     signing
     alias(libs.plugins.kotlin.mpp)
     // alias(libs.plugins.android.library)
+    alias(libs.plugins.kotest)
     alias(libs.plugins.dokka)
 }
 
@@ -76,13 +77,10 @@ kotlin {
 
         commonTest {
             dependencies {
-                implementation(libs.kotlin.test)
-            }
-        }
-
-        nativeTest {
-            dependencies {
-                implementation(project(":languages:java"))
+                implementation(libs.bundles.kotest.core)
+                rootProject.project("languages").subprojects.forEach {
+                    implementation(project(":languages:${it.name}"))
+                }
             }
         }
     }
