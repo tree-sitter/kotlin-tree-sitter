@@ -1,5 +1,5 @@
 package = io.github.treesitter.ktreesitter.internal
-headers = tree_sitter/api.h
+headers = tree_sitter/api.h alloc.h
 headerFilter = tree_sitter/api.h
 staticLibraries = libtree-sitter.a
 staticLibraries.mingw = tree-sitter.lib
@@ -24,47 +24,6 @@ excludedFunctions = \
 
 ---
 
-/*
-static inline void kts_tree_edit(TSTree *tree, uint32_t start_byte,
-                                 uint32_t old_end_byte, uint32_t new_end_byte,
-                                 uint32_t start_row, uint32_t start_column,
-                                 uint32_t old_end_row, uint32_t old_end_column,
-                                 uint32_t new_end_row, uint32_t new_end_column) {
-    TSInputEdit edit = {
-        .start_byte = start_byte,
-        .old_end_byte = old_end_byte,
-        .new_end_byte = new_end_byte,
-        .start_point = {start_row, start_column},
-        .old_end_point = {old_end_row, old_end_column},
-        .new_end_point = {new_end_row, new_end_column}
-     };
-     ts_tree_edit(tree, &edit);
-}
-
-static inline void kts_node_edit(TSNode *node, uint32_t start_byte,
-                                 uint32_t old_end_byte, uint32_t new_end_byte,
-                                 uint32_t start_row, uint32_t start_column,
-                                 uint32_t old_end_row, uint32_t old_end_column,
-                                 uint32_t new_end_row, uint32_t new_end_column) {
-    TSInputEdit edit = {
-        .start_byte = start_byte,
-        .old_end_byte = old_end_byte,
-        .new_end_byte = new_end_byte,
-        .start_point = {start_row, start_column},
-        .old_end_point = {old_end_row, old_end_column},
-        .new_end_point = {new_end_row, new_end_column}
-     };
-     ts_node_edit(node, &edit);
-}
-
-static inline TSNode kts_tree_root_node_with_offset(TSTree *tree, uint32_t offset_bytes,
-                                                    uint32_t offset_row, uint32_t offset_column) {
-
-    TSPoint offset_extent = {offset_row, offset_column};
-    return ts_tree_root_node_with_offset(tree, offset_bytes, offset_extent);
-}
-*/
-
 static inline TSRange kts_node_range(TSNode node) {
     return (TSRange){
         .start_byte = ts_node_start_byte(node),
@@ -82,4 +41,12 @@ static inline int32_t kts_node_hash(TSNode node) {
     uintptr_t id = (uintptr_t)node.id;
     uintptr_t tree = (uintptr_t)node.tree;
     return (int32_t)(id == tree ? id : id ^ tree);
+}
+
+static inline void *kts_malloc(size_t size) {
+    return ts_malloc(size);
+}
+
+static inline void kts_free(void *ptr) {
+    return ts_free(ptr);
 }

@@ -8,7 +8,7 @@ actual class Node internal constructor(
     internal val self: CValue<TSNode>,
     internal actual val tree: Tree
 ) {
-    private val source = tree.source
+    private var source = tree.source
 
     actual val id: ULong = kts_node_id(self)
 
@@ -90,32 +90,46 @@ actual class Node internal constructor(
     actual val prevNamedSibling: Node?
         get() = ts_node_prev_named_sibling(self).convert(tree)
 
-    actual val children: List<Node> by lazy {
-        val length = childCount.toInt()
-        if (length == 0) return@lazy emptyList()
-        val cursor = ts_tree_cursor_new(self)
-        val children = List(length) {
-            val node = ts_tree_cursor_current_node(cursor)
-            ts_tree_cursor_goto_next_sibling(cursor)
-            Node(node, tree)
-        }
-        ts_tree_cursor_delete(cursor)
-        children
-    }
+    private var internalChildren: List<Node>? = null
 
-    actual val namedChildren: List<Node> by lazy {
-        val length = namedChildCount.toInt()
-        if (length == 0) return@lazy emptyList()
-        val children = ArrayList<Node>(length)
-        val cursor = ts_tree_cursor_new(self)
-        do {
-            val node = ts_tree_cursor_current_node(cursor)
-            if (ts_node_is_named(node))
-                children += Node(node, tree)
-        } while (ts_tree_cursor_goto_next_sibling(cursor))
-        ts_tree_cursor_delete(cursor)
-        children.apply { trimToSize() }
-    }
+    actual val children: List<Node>
+        get() {
+            if (internalChildren == null) {
+                val length = childCount.toInt()
+                if (length == 0) return emptyList()
+                val cursor = ts_tree_cursor_new(self).ptr
+                internalChildren = List(length) {
+                    val node = ts_tree_cursor_current_node(cursor)
+                    ts_tree_cursor_goto_next_sibling(cursor)
+                    Node(node, tree)
+                }
+                ts_tree_cursor_delete(cursor)
+                kts_free(cursor)
+            }
+            return internalChildren!!
+        }
+
+    private var internalNamedChildren: List<Node>? = null
+
+    actual val namedChildren: List<Node>
+        get() {
+            if (internalNamedChildren == null) {
+                val length = namedChildCount.toInt()
+                if (length == 0) return emptyList()
+                val children = ArrayList<Node>(length)
+                val cursor = ts_tree_cursor_new(self).ptr
+                do {
+                    val node = ts_tree_cursor_current_node(cursor)
+                    if (ts_node_is_named(node))
+                        children += Node(node, tree)
+                } while (ts_tree_cursor_goto_next_sibling(cursor))
+                ts_tree_cursor_delete(cursor)
+                kts_free(cursor)
+                children.trimToSize()
+                internalNamedChildren = children
+            }
+            return internalNamedChildren!!
+        }
 
     actual fun child(index: UInt): Node? {
         if (index < childCount) return ts_node_child(self, index).convert(tree)
@@ -137,7 +151,7 @@ actual class Node internal constructor(
         val length = childCount.toInt()
         if (length == 0) return emptyList()
         val children = ArrayList<Node>(length)
-        val cursor = ts_tree_cursor_new(self)
+        val cursor = ts_tree_cursor_new(self).ptr
         var ok = ts_tree_cursor_goto_first_child(cursor)
         while (ok) {
             if (ts_tree_cursor_current_field_id(cursor) == id)
@@ -145,6 +159,7 @@ actual class Node internal constructor(
             ok = ts_tree_cursor_goto_next_sibling(cursor)
         }
         ts_tree_cursor_delete(cursor)
+        kts_free(cursor)
         return children.apply { trimToSize() }
     }
 
@@ -195,16 +210,30 @@ actual class Node internal constructor(
             old_end_point.from(oldEndPoint)
             new_end_point.from(newEndPoint)
         }
-        ts_node_edit(self, edit)
+        val arena = Arena()
+        val node = interpretCPointer<TSNode>(
+            arena.alloc(self.size, self.align).rawPtr
+        )
+        ts_node_edit(node, edit)
+        arena.clear()
     }
 
-    actual fun text() =
-        source?.subSequence(startByte.toInt(), minOf(endByte.toInt(), source.length))
+    actual fun text() = source?.run {
+        subSequence(startByte.toInt(), minOf(endByte.toInt(), length))
+    }
+
+    actual fun sexp(): String {
+        val string = ts_node_string(self)
+        val result = string?.toKString() ?: ""
+        kts_free(string)
+        return result
+    }
 
     actual override fun equals(other: Any?) =
         this === other || (other is Node && ts_node_eq(self, other.self))
 
-    actual override fun hashCode() = kts_node_hash(self)
+    actual override fun hashCode(): Int = kts_node_hash(self)
 
-    actual override fun toString() = ts_node_string(self)?.toKString() ?: ""
+    actual override fun toString() =
+        """Node(type="${type.replace("\"", "\\\"")}", startByte=$startByte, endByte=$endByte)"""
 }

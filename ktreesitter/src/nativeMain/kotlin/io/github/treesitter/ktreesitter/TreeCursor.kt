@@ -7,16 +7,19 @@ import kotlinx.cinterop.*
 
 @OptIn(ExperimentalForeignApi::class)
 actual class TreeCursor private constructor(
-    private val self: CValuesRef<TSTreeCursor>?,
+    private val self: CPointer<TSTreeCursor>,
     internal actual val tree: Tree
 ) {
-    internal constructor(node: Node) : this(ts_tree_cursor_new(node.self), node.tree) {
+    internal constructor(node: Node) : this(ts_tree_cursor_new(node.self).ptr, node.tree) {
         currentNode = node
     }
 
     @Suppress("unused")
     @OptIn(ExperimentalNativeApi::class)
-    private val cleaner = createCleaner(self, ::ts_tree_cursor_delete)
+    private val cleaner = createCleaner(self) {
+        ts_tree_cursor_delete(it)
+        kts_free(it)
+    }
 
     actual var currentNode: Node? = null
         get() {
@@ -29,7 +32,7 @@ actual class TreeCursor private constructor(
     actual val currentDepth: UInt
         get() = ts_tree_cursor_current_depth(self)
 
-    actual val currentFieldId: UShort?
+    actual val currentFieldId: UShort
         get() = ts_tree_cursor_current_field_id(self)
 
     actual val currentFieldName: String?
@@ -38,7 +41,7 @@ actual class TreeCursor private constructor(
     actual val currentDescendantIndex: UInt
         get() = ts_tree_cursor_current_descendant_index(self)
 
-    actual fun copy() = TreeCursor(ts_tree_cursor_copy(self), tree)
+    actual fun copy() = TreeCursor(ts_tree_cursor_copy(self).ptr, tree)
 
     actual fun reset(node: Node) {
         ts_tree_cursor_reset(self, node.self)

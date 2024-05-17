@@ -53,6 +53,7 @@ expect class Node {
     )
     fun walk(): TreeCursor
     fun text(): CharSequence?
+    fun sexp(): String
 
     override fun equals(other: Any?): Boolean
     override fun hashCode(): Int

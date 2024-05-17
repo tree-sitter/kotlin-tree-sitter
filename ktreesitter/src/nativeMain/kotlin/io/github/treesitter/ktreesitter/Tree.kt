@@ -11,6 +11,10 @@ actual class Tree internal constructor(
     internal val self: CPointer<TSTree>?,
     internal actual var source: String?
 ) {
+    init {
+        checkNotNull(self) { "Parsing failed" }
+    }
+
     @Suppress("unused")
     @OptIn(ExperimentalNativeApi::class)
     private val cleaner = createCleaner(self, ::ts_tree_delete)
@@ -22,7 +26,9 @@ actual class Tree internal constructor(
         get() = memScoped {
             val length = alloc<UIntVar>()
             val ranges = ts_tree_included_ranges(self, length.ptr) ?: return emptyList()
-            return List(length.value.convert()) { ranges[it].convert() }
+            val result = List(length.value.convert()) { ranges[it].convert() }
+            kts_free(ranges)
+            return result
         }
 
     actual fun rootNodeWithOffset(bytes: UInt, extent: Point): Node? {
@@ -52,12 +58,14 @@ actual class Tree internal constructor(
 
     actual fun walk() = TreeCursor(rootNode)
 
-    actual fun text() = source as CharSequence?
+    actual fun text(): CharSequence? = source
 
     actual fun changedRanges(newTree: Tree): List<Range> = memScoped {
         val length = alloc<UIntVar>()
         val ranges = ts_tree_get_changed_ranges(self, newTree.self, length.ptr)
         if (length.value == 0U || ranges == null) return emptyList()
-        return List(length.value.convert()) { ranges[it].convert() }
+        val result = List(length.value.convert()) { ranges[it].convert() }
+        kts_free(ranges)
+        return result
     }
 }

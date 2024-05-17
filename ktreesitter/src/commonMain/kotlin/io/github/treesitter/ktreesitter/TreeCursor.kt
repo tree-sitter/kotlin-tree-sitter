@@ -6,7 +6,7 @@ expect class TreeCursor {
     var currentNode: Node?
         private set
     val currentDepth: UInt
-    val currentFieldId: UShort?
+    val currentFieldId: UShort
     val currentFieldName: String?
     val currentDescendantIndex: UInt
 

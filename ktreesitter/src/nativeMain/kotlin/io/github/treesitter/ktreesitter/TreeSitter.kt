@@ -27,3 +27,7 @@ internal inline fun TSRange.convert() =
 @ExperimentalForeignApi
 internal inline fun CValue<TSNode>.convert(tree: Tree) =
     if (ts_node_is_null(this)) null else Node(this, tree)
+
+@ExperimentalForeignApi
+internal inline val <reified T : CVariable> CValue<T>.ptr: CPointer<T>
+    get() = place(kts_malloc(sizeOf<T>().convert())!!.reinterpret())
