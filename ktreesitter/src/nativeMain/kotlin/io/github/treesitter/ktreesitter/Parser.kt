@@ -63,21 +63,20 @@ actual class Parser actual constructor() {
         }
      */
 
-    actual fun parse(source: String, oldTree: Tree?, encoding: InputEncoding): Tree {
-        val tree = ts_parser_parse_string_encoding(
+    actual fun parse(source: String, oldTree: Tree?): Tree {
+        val tree = ts_parser_parse_string(
             self,
             oldTree?.self,
             source,
-            source.length.convert(),
-            encoding.convert()
+            source.length.convert()
         )
         return Tree(tree, source)
     }
 
-    actual fun parse(callback: ParseCallback, oldTree: Tree?, encoding: InputEncoding): Tree {
+    actual fun parse(oldTree: Tree?, callback: ParseCallback): Tree {
         val input = cValue<TSInput> {
-            this.encoding = encoding.convert()
-            TODO("set read, payload")
+            encoding = TSInputEncodingUTF8
+            TODO("callback")
         }
         val tree = ts_parser_parse(self, oldTree?.self, input)
         return Tree(tree, null)

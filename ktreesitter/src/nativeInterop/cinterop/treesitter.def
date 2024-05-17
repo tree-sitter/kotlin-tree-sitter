@@ -4,13 +4,13 @@ headerFilter = tree_sitter/api.h
 staticLibraries = libtree-sitter.a
 staticLibraries.mingw = tree-sitter.lib
 strictEnums = \
-    TSInputEncoding \
     TSLogType \
     TSQuantifier \
     TSQueryError \
     TSQueryPredicateStepType \
     TSWasmErrorKind
 nonStrictEnums = \
+    TSInputEncoding \
     TSSymbolType
 excludedFunctions = \
     ts_language_is_wasm \
