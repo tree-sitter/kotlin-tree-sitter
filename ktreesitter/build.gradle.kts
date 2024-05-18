@@ -1,4 +1,4 @@
-import java.io.ByteArrayOutputStream
+import java.io.OutputStream.nullOutputStream
 import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.dokka.base.DokkaBase
 import org.jetbrains.dokka.base.DokkaBaseConfiguration
@@ -178,91 +178,45 @@ tasks.dokkaHtml {
     }
 }
 
-fun CInteropProcess.zigBuild(target: String, lib: String, vararg args: String) {
-    exec {
-        executable = "zig"
-        workingDir = treesitterDir
-        args("build", "--summary", "all", "-Dtarget=$target", *args)
-    }
+tasks.withType<CInteropProcess>().configureEach {
+    if (name.startsWith("cinteropTest")) return@configureEach
 
-    copy {
-        from(treesitterDir.resolve("zig-out/lib/$lib"))
-        into(libsDir.dir(konanTarget.name))
-    }
+    val runKonan = File(konanHome.get()).resolve("bin/run_konan")
+    val libFile = libsDir.dir(konanTarget.name).file(
+        "${konanTarget.family.staticPrefix}tree-sitter.${konanTarget.family.staticSuffix}"
+    )
 
-    delete(treesitterDir.resolve("zig-out/lib/$lib"))
-}
-
-if (os.isLinux) {
-    tasks.getByName<CInteropProcess>("cinteropTreesitterLinuxX64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("libtree-sitter.a"))
-
-        doFirst {
-            zigBuild("x86_64-linux", "libtree-sitter.a")
-        }
-    }
-
-    tasks.getByName<CInteropProcess>("cinteropTreesitterLinuxArm64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("libtree-sitter.a"))
-
-        doFirst {
-            zigBuild("aarch64-linux", "libtree-sitter.a")
-        }
-    }
-} else if (os.isWindows) {
-    tasks.getByName<CInteropProcess>("cinteropTreesitterMingwX64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("tree-sitter.lib"))
-
-        doFirst {
-            zigBuild("x86_64-windows-gnu", "tree-sitter.lib")
-        }
-    }
-} else if (os.isMacOsX) {
-    fun findSysroot(sdk: String): String {
-        val output = ByteArrayOutputStream()
+    doFirst {
         exec {
-            executable = "xcrun"
-            standardOutput = output
-            args("--sdk", sdk, "--show-sdk-path")
+            executable = runKonan.path
+            workingDir = treesitterDir
+            standardOutput = nullOutputStream()
+            args(
+                "clang",
+                "clang",
+                konanTarget.name,
+                "-I", treesitterDir.resolve("lib/src"),
+                "-I", treesitterDir.resolve("lib/include"),
+                "-DTREE_SITTER_HIDE_SYMBOLS",
+                "-fvisibility=hidden",
+                "-std=c11",
+                "-O3",
+                "-c",
+                treesitterDir.resolve("lib/src/lib.c")
+            )
         }
-        return output.use { it.toString().trimEnd() }
-    }
 
-    tasks.getByName<CInteropProcess>("cinteropTreesitterMacosX64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("libtree-sitter.a"))
+        val objectFile = treesitterDir.resolve("lib.o")
 
-        doFirst {
-            val sysroot = findSysroot("macosx")
-            zigBuild("x86_64-macos", "libtree-sitter.a", "--sysroot", sysroot)
-        }
-    }
-
-    tasks.getByName<CInteropProcess>("cinteropTreesitterMacosArm64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("libtree-sitter.a"))
-
-        doFirst {
-            val sysroot = findSysroot("macosx")
-            zigBuild("aarch64-macos", "libtree-sitter.a", "--sysroot", sysroot)
-        }
-    }
-
-    tasks.getByName<CInteropProcess>("cinteropTreesitterIosArm64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("libtree-sitter.a"))
-
-        doFirst {
-            val sysroot = findSysroot("iphoneos")
-            zigBuild("aarch64-ios", "libtree-sitter.a", "--sysroot", sysroot)
+        exec {
+            executable = runKonan.path
+            workingDir = treesitterDir
+            standardOutput = nullOutputStream()
+            args("llvm", "llvm-ar", "rcs", libFile, objectFile)
         }
     }
 
-    tasks.getByName<CInteropProcess>("cinteropTreesitterIosSimulatorArm64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("libtree-sitter.a"))
-
-        doFirst {
-            val sysroot = findSysroot("iphoneos")
-            zigBuild("aarch64-ios-simulator", "libtree-sitter.a", "--sysroot", sysroot)
-        }
-    }
+    outputs.file(libFile)
 }
 
 tasks.withType<AbstractPublishToMaven>().configureEach {

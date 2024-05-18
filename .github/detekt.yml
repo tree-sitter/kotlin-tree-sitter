@@ -4,6 +4,11 @@ complexity:
   LongParameterList:
     functionThreshold: 7
 
+performance:
+  SpreadOperator:
+    excludes:
+      - "**/*.kts"
+
 style:
   WildcardImport:
     active: false

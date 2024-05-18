@@ -1,4 +1,4 @@
-import java.io.ByteArrayOutputStream
+import java.io.OutputStream.nullOutputStream
 import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
@@ -7,6 +7,10 @@ val os: OperatingSystem = OperatingSystem.current()
 val libsDir = layout.buildDirectory.get().dir("tmp").dir("libs")
 val grammarDir = projectDir.resolve("tree-sitter-java")
 val grammarName = project.name
+val grammarFiles = arrayOf(
+    // grammarDir.resolve("src/scanner.c"),
+    grammarDir.resolve("src/parser.c")
+)
 
 version = grammarDir.resolve("Makefile").readLines()
     .first { it.startsWith("VERSION := ") }.removePrefix("VERSION := ")
@@ -67,7 +71,7 @@ kotlin {
 
 /*
 android {
-    namespace = "$group.$grammarName"
+    namespace = "$group.ktreesitter.$grammarName"
     compileSdk = 34
     defaultConfig {
         minSdk = 21
@@ -140,104 +144,46 @@ signing {
     sign(publishing.publications)
 }
 
-fun CInteropProcess.zigBuild(target: String, lib: String, vararg args: String) {
-    exec {
-        executable = "zig"
-        workingDir = grammarDir
-        args(
-            "build-lib",
-            "--name",
-            "tree-sitter-$grammarName",
-            "-lc",
-            "-static",
-            "-Isrc",
-            "-target",
-            target,
-            "-cflags",
-            "-std=c11",
-            "--",
-            "src/parser.c",
-            // "src/scanner.c",
-            *args
-        )
-    }
+tasks.withType<CInteropProcess>().configureEach {
+    if (name.startsWith("cinteropTest")) return@configureEach
 
-    copy {
-        from(grammarDir.resolve(lib))
-        into(libsDir.dir(konanTarget.name))
-    }
+    val runKonan = File(konanHome.get()).resolve("bin/run_konan")
+    val libFile = libsDir.dir(konanTarget.name).file(
+        konanTarget.family.staticPrefix +
+            "tree-sitter-$grammarName." +
+            konanTarget.family.staticSuffix
+    )
+    val objectFiles = grammarFiles.map {
+        grammarDir.resolve(it.nameWithoutExtension + ".o")
+    }.toTypedArray()
 
-    delete(grammarDir.resolve(lib))
-}
+    inputs.files(*grammarFiles)
+    outputs.file(libFile)
 
-if (os.isLinux) {
-    tasks.getByName<CInteropProcess>("cinteropParserLinuxX64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a"))
-
-        doFirst {
-            zigBuild("x86_64-linux", "libtree-sitter-$grammarName.a")
-        }
-    }
-
-    tasks.getByName<CInteropProcess>("cinteropParserLinuxArm64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a"))
-
-        doFirst {
-            zigBuild("aarch64-linux", "libtree-sitter-$grammarName.a")
-        }
-    }
-} else if (os.isWindows) {
-    tasks.getByName<CInteropProcess>("cinteropParserMingwX64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("tree-sitter-$grammarName.lib"))
-
-        doFirst {
-            zigBuild("x86_64-windows-gnu", "tree-sitter-$grammarName.lib")
-        }
-    }
-} else if (os.isMacOsX) {
-    fun findSysroot(sdk: String): String {
-        val output = ByteArrayOutputStream()
+    doFirst {
         exec {
-            executable = "xcrun"
-            standardOutput = output
-            args("--sdk", sdk, "--show-sdk-path")
+            executable = runKonan.path
+            workingDir = grammarDir
+            standardOutput = nullOutputStream()
+            args(
+                "clang",
+                "clang",
+                konanTarget.name,
+                "-I", grammarDir.resolve("src"),
+                "-DTREE_SITTER_HIDE_SYMBOLS",
+                "-std=c11",
+                "-O2",
+                "-g",
+                "-c",
+                *grammarFiles
+            )
         }
-        return output.use { it.toString().trimEnd() }
-    }
 
-    tasks.getByName<CInteropProcess>("cinteropParserMacosX64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a"))
-
-        doFirst {
-            val sysroot = findSysroot("macosx")
-            zigBuild("x86_64-macos", "libtree-sitter-$grammarName.a", "--sysroot", sysroot)
-        }
-    }
-
-    tasks.getByName<CInteropProcess>("cinteropParserMacosArm64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a"))
-
-        doFirst {
-            val sysroot = findSysroot("macosx")
-            zigBuild("aarch64-macos", "libtree-sitter-$grammarName.a", "--sysroot", sysroot)
-        }
-    }
-
-    tasks.getByName<CInteropProcess>("cinteropParserIosArm64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a"))
-
-        doFirst {
-            val sysroot = findSysroot("iphoneos")
-            zigBuild("aarch64-ios", "libtree-sitter-$grammarName.a", "--sysroot", sysroot)
-        }
-    }
-
-    tasks.getByName<CInteropProcess>("cinteropParserIosSimulatorArm64") {
-        outputs.file(libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a"))
-
-        doFirst {
-            val sysroot = findSysroot("iphoneos")
-            zigBuild("aarch64-ios-simulator", "libtree-sitter-$grammarName.a", "--sysroot", sysroot)
+        exec {
+            executable = runKonan.path
+            workingDir = grammarDir
+            standardOutput = nullOutputStream()
+            args("llvm", "llvm-ar", "rcs", libFile, *objectFiles)
         }
     }
 }
