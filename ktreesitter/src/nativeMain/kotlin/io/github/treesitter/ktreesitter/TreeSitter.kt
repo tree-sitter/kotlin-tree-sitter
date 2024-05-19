@@ -4,6 +4,16 @@ import io.github.treesitter.ktreesitter.internal.*
 import kotlinx.cinterop.*
 
 @ExperimentalForeignApi
+internal inline fun TSInputEdit.from(edit: InputEdit) = apply {
+    start_byte = edit.startByte
+    old_end_byte = edit.oldEndByte
+    new_end_byte = edit.newEndByte
+    start_point.from(edit.startPoint)
+    old_end_point.from(edit.oldEndPoint)
+    new_end_point.from(edit.newEndPoint)
+}
+
+@ExperimentalForeignApi
 internal inline fun TSPoint.from(point: Point) = apply {
     row = point.row
     column = point.column

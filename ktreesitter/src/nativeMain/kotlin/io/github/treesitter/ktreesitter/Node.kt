@@ -194,27 +194,14 @@ actual class Node internal constructor(
 
     actual fun walk() = TreeCursor(this)
 
-    actual fun edit(
-        startByte: UInt,
-        oldEndByte: UInt,
-        newEndByte: UInt,
-        startPoint: Point,
-        oldEndPoint: Point,
-        newEndPoint: Point
-    ) {
-        val edit = cValue<TSInputEdit> {
-            start_byte = startByte
-            old_end_byte = oldEndByte
-            new_end_byte = newEndByte
-            start_point.from(startPoint)
-            old_end_point.from(oldEndPoint)
-            new_end_point.from(newEndPoint)
-        }
+    @ExperimentalMultiplatform
+    actual fun edit(edit: InputEdit) {
+        val inputEdit = cValue<TSInputEdit> { from(edit) }
         val arena = Arena()
         val node = interpretCPointer<TSNode>(
             arena.alloc(self.size, self.align).rawPtr
         )
-        ts_node_edit(node, edit)
+        ts_node_edit(node, inputEdit)
         arena.clear()
     }
 

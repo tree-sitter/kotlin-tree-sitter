@@ -43,14 +43,7 @@ expect class Node {
     fun descendant(start: Point, end: Point): Node?
     fun namedDescendant(start: UInt, end: UInt): Node?
     fun namedDescendant(start: Point, end: Point): Node?
-    fun edit(
-        startByte: UInt,
-        oldEndByte: UInt,
-        newEndByte: UInt,
-        startPoint: Point,
-        oldEndPoint: Point,
-        newEndPoint: Point
-    )
+    fun edit(edit: InputEdit)
     fun walk(): TreeCursor
     fun text(): CharSequence?
     fun sexp(): String

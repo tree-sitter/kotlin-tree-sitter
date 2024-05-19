@@ -36,25 +36,13 @@ actual class Tree internal constructor(
         return ts_tree_root_node_with_offset(self, bytes, offsetExtent).convert(this)
     }
 
-    actual fun edit(
-        startByte: UInt,
-        oldEndByte: UInt,
-        newEndByte: UInt,
-        startPoint: Point,
-        oldEndPoint: Point,
-        newEndPoint: Point
-    ) {
-        val edit = cValue<TSInputEdit> {
-            start_byte = startByte
-            old_end_byte = oldEndByte
-            new_end_byte = newEndByte
-            start_point.from(startPoint)
-            old_end_point.from(oldEndPoint)
-            new_end_point.from(newEndPoint)
-        }
-        ts_tree_edit(self, edit)
+    actual fun edit(edit: InputEdit) {
+        val inputEdit = cValue<TSInputEdit> { from(edit) }
+        ts_tree_edit(self, inputEdit)
         source = null
     }
+
+    actual fun copy() = Tree(ts_tree_copy(self), source)
 
     actual fun walk() = TreeCursor(rootNode)
 

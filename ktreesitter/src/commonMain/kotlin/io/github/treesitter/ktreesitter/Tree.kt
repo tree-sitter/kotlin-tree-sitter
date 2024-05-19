@@ -6,14 +6,8 @@ expect class Tree {
     val includedRanges: List<Range>
 
     fun rootNodeWithOffset(bytes: UInt, extent: Point): Node?
-    fun edit(
-        startByte: UInt,
-        oldEndByte: UInt,
-        newEndByte: UInt,
-        startPoint: Point,
-        oldEndPoint: Point,
-        newEndPoint: Point
-    )
+    fun edit(edit: InputEdit)
+    fun copy(): Tree
     fun walk(): TreeCursor
     fun text(): CharSequence?
     fun changedRanges(newTree: Tree): List<Range>
