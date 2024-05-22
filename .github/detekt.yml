@@ -17,5 +17,14 @@ style:
   UnusedPrivateProperty:
     excludes:
       - "**/commonMain/**"
+  MagicNumber:
+    ignoreNumbers:
+      - "-1"
+      - "0"
+      - "1"
+      - "2"
+      - "3"
+      - "10"
+      - "16"
   ReturnCount:
     max: 3

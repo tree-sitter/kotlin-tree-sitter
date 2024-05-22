@@ -6,4 +6,9 @@ data class Point(val row: UInt, val column: UInt) : Comparable<Point> {
         if (rowDiff != 0) return rowDiff
         return column.compareTo(other.column)
     }
+
+    companion object {
+        val MIN = Point(UInt.MIN_VALUE, UInt.MIN_VALUE)
+        val MAX = Point(UInt.MAX_VALUE, UInt.MAX_VALUE)
+    }
 }

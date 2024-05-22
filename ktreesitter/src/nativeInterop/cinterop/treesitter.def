@@ -6,11 +6,10 @@ staticLibraries.mingw = tree-sitter.lib
 strictEnums = \
     TSLogType \
     TSQuantifier \
-    TSQueryError \
-    TSQueryPredicateStepType \
-    TSWasmErrorKind
+    TSQueryError
 nonStrictEnums = \
     TSInputEncoding \
+    TSQueryPredicateStepType \
     TSSymbolType
 excludedFunctions = \
     ts_language_is_wasm \
@@ -23,6 +22,14 @@ excludedFunctions = \
     ts_wasm_store_new
 
 ---
+
+static inline bool kts_is_valid_identifier_char(int ch) {
+    return isalnum(ch) || ch == '_';
+}
+
+static inline bool kts_is_valid_predicate_char(int ch) {
+    return isalnum(ch) || ch == '_' || ch == '-' || ch == '.' || ch == '?' || ch == '!';
+}
 
 static inline TSRange kts_node_range(TSNode node) {
     return (TSRange){
