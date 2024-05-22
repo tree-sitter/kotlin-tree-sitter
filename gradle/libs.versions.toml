@@ -1,5 +1,5 @@
 [versions]
-kotlin-stdlib = "1.9.23"
+kotlin-stdlib = "2.0.0"
 #noinspection GradleDependency
 android-gradle = {strictly = "8.2.0"}
 kotest = "5.9.0"
