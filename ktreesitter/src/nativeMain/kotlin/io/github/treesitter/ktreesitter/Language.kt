@@ -54,4 +54,10 @@ actual class Language(language: Any) {
     actual override fun hashCode() = self.hashCode()
 
     override fun toString() = "Language(id=${self.rawValue}, version=$version)"
+
+    actual companion object {
+        actual val LANGUAGE_VERSION: UInt = TREE_SITTER_LANGUAGE_VERSION.convert()
+        actual val MIN_COMPATIBLE_LANGUAGE_VERSION: UInt =
+            TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION.convert()
+    }
 }

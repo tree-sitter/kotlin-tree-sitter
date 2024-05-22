@@ -18,4 +18,9 @@ expect class Language {
 
     override fun equals(other: Any?): Boolean
     override fun hashCode(): Int
+
+    companion object {
+        val LANGUAGE_VERSION: UInt
+        val MIN_COMPATIBLE_LANGUAGE_VERSION: UInt
+    }
 }
