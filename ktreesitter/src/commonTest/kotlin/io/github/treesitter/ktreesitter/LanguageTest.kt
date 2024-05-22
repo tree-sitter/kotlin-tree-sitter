@@ -5,6 +5,7 @@ import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.*
 import io.kotest.matchers.comparables.*
+import io.kotest.matchers.nulls.*
 import io.kotest.matchers.string.*
 import io.kotest.matchers.types.*
 
@@ -32,8 +33,8 @@ class LanguageTest : FunSpec({
     }
 
     test("symbolForName()") {
-        language.symbolForName(";", false) shouldNotBe null
-        language.symbolForName("program", true) shouldNotBe null
+        language.symbolForName(";", false).shouldNotBeNull()
+        language.symbolForName("program", true).shouldNotBeNull()
     }
 
     test("isNamed()") {
@@ -45,11 +46,11 @@ class LanguageTest : FunSpec({
     }
 
     test("fieldNameForId()") {
-        language.fieldNameForId(1U) shouldNotBe null
+        language.fieldNameForId(1U).shouldNotBeNull()
     }
 
     test("fieldIdForName()") {
-        language.fieldIdForName("body") shouldNotBe null
+        language.fieldIdForName("body").shouldNotBeNull()
     }
 
     test("nextState()") {
@@ -64,7 +65,7 @@ class LanguageTest : FunSpec({
         lookahead.language shouldBeSameInstanceAs language
     }
 
-    xtest("query()") {
+    test("query()") {
         shouldNotThrowAny { language.query("(program) @root") }
     }
 

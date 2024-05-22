@@ -8,8 +8,6 @@ actual class Node internal constructor(
     internal val self: CValue<TSNode>,
     internal actual val tree: Tree
 ) {
-    private var source = tree.source
-
     actual val id: ULong = kts_node_id(self)
 
     actual val symbol: UShort
@@ -205,7 +203,7 @@ actual class Node internal constructor(
         arena.clear()
     }
 
-    actual fun text() = source?.run {
+    actual fun text() = tree.source?.run {
         subSequence(startByte.toInt(), minOf(endByte.toInt(), length))
     }
 
@@ -221,6 +219,5 @@ actual class Node internal constructor(
 
     actual override fun hashCode(): Int = kts_node_hash(self)
 
-    actual override fun toString() =
-        """Node(type="${type.replace("\"", "\\\"")}", startByte=$startByte, endByte=$endByte)"""
+    actual override fun toString() = "Node(type=$type, startByte=$startByte, endByte=$endByte)"
 }

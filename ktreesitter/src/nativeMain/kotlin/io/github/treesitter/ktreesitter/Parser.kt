@@ -59,14 +59,14 @@ actual class Parser actual constructor() {
                 val logger = cValue<TSLogger> {
                     payload = StableRef.create(value).asCPointer()
                     log = staticCFunction { payload, type, message ->
-                        val function = payload?.asStableRef<LogFunction>()
-                        if (function != null && message != null) {
+                        val callback = payload?.asStableRef<LogFunction>()?.get()
+                        if (callback != null && message != null) {
                             val logType = when (type) {
                                 TSLogType.TSLogTypeLex -> LogType.LEX
                                 TSLogType.TSLogTypeParse -> LogType.PARSE
                                 else -> error("Unreachable")
                             }
-                            function.get().invoke(logType, message.toKString())
+                            callback(logType, message.toKString())
                         }
                     }
                 }
@@ -87,12 +87,11 @@ actual class Parser actual constructor() {
 
     actual fun parse(oldTree: Tree?, callback: ParseCallback): Tree {
         val arena = Arena()
-        val payload = ParsePayload(arena, callback)
-        val payloadRef = StableRef.create(payload)
+        val payloadRef = StableRef.create(ParsePayload(arena, callback))
         val input = cValue<TSInput> {
-            this.payload = payloadRef.asCPointer()
-            this.encoding = TSInputEncodingUTF8
-            this.read = staticCFunction { payload, index, point, bytes ->
+            payload = payloadRef.asCPointer()
+            encoding = TSInputEncodingUTF8
+            read = staticCFunction { payload, index, point, bytes ->
                 val data = payload!!.asStableRef<ParsePayload>().get()
                 val result = data.callback(index, point.useContents { convert() })
                 if (result != null) data.value += result
@@ -110,7 +109,7 @@ actual class Parser actual constructor() {
 
     actual enum class LogType { LEX, PARSE }
 
-    private data class ParsePayload(
+    private class ParsePayload(
         val memScope: AutofreeScope,
         val callback: ParseCallback,
         var value: String = ""
