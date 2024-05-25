@@ -5,6 +5,11 @@ import kotlin.experimental.ExperimentalNativeApi
 import kotlin.native.ref.createCleaner
 import kotlinx.cinterop.*
 
+/**
+ * A class that is used to produce a [syntax tree][Tree] from source code.
+ *
+ * @constructor Create a new instance with a certain [language], or `null` if empty.
+ */
 @OptIn(ExperimentalForeignApi::class)
 actual class Parser actual constructor() {
     actual constructor(language: Language) : this() {
@@ -17,12 +22,27 @@ actual class Parser actual constructor() {
     @OptIn(ExperimentalNativeApi::class)
     private val cleaner = createCleaner(self, ::ts_parser_delete)
 
+    /**
+     * The language that the parser will use for parsing.
+     *
+     * Parsing cannot be performed while the language is `null`.
+     */
     actual var language: Language? = null
         set(value) {
             ts_parser_set_language(self, value?.self)
             field = value
         }
 
+    /**
+     * The ranges of text that the parser should include when parsing.
+     *
+     * By default, the parser will always include entire documents.
+     * Setting this property allows you to parse only a *portion* of a
+     * document but still return a syntax tree whose ranges match up with
+     * the document as a whole. You can also pass multiple disjoint ranges.
+     *
+     * @throws [IllegalArgumentException] If the ranges overlap or are not in ascending order.
+     */
     actual var includedRanges: List<Range> = emptyList()
         set(value) {
             val size = value.size
@@ -33,17 +53,24 @@ actual class Parser actual constructor() {
                 }
                 val result = ts_parser_set_included_ranges(self, ranges, size.convert())
                 arena.clear()
-                require(result) { "Included ranges cannot overlap" }
+                require(result) {
+                    "Included ranges must be in ascending order and must not overlap"
+                }
             } else {
                 ts_parser_set_included_ranges(self, null, 0U)
             }
             field = value
         }
 
+    /**
+     * The maximum duration in microseconds that parsing
+     * should be allowed to take before halting.
+     */
     actual var timeoutMicros: ULong
         get() = ts_parser_timeout_micros(self)
         set(value) = ts_parser_set_timeout_micros(self, value)
 
+    /** The logger that the parser will use during parsing. */
     actual var logger: LogFunction? = null
         set(value) {
             if (field != null) {
@@ -60,14 +87,8 @@ actual class Parser actual constructor() {
                     payload = StableRef.create(value).asCPointer()
                     log = staticCFunction { payload, type, message ->
                         val callback = payload?.asStableRef<LogFunction>()?.get()
-                        if (callback != null && message != null) {
-                            val logType = when (type) {
-                                TSLogType.TSLogTypeLex -> LogType.LEX
-                                TSLogType.TSLogTypeParse -> LogType.PARSE
-                                else -> error("Unreachable")
-                            }
-                            callback(logType, message.toKString())
-                        }
+                        if (callback != null && message != null)
+                            callback(LogType.entries[type.ordinal], message.toKString())
                     }
                 }
                 ts_parser_set_logger(self, logger)
@@ -75,17 +96,52 @@ actual class Parser actual constructor() {
             field = value
         }
 
+    /**
+     * Parse a source code string and create a syntax tree.
+     *
+     * If you have already parsed an earlier version of this document and the document
+     * has since been edited, pass the previous syntax tree to [oldTree] so that the
+     * unchanged parts of it can be reused. This will save time and memory. For this
+     * to work correctly, you must have already edited the old syntax tree using the
+     * [Tree.edit] method in a way that exactly matches the source code changes.
+     *
+     * @throws [IllegalStateException]
+     *  If the parser does not have a [language] assigned or
+     *  if parsing was canceled due to a [timeout][timeoutMicros].
+     */
+    @Throws(IllegalStateException::class)
     actual fun parse(source: String, oldTree: Tree?): Tree {
+        val language = checkNotNull(language) {
+            "The parser has no language assigned"
+        }
         val tree = ts_parser_parse_string(
             self,
             oldTree?.self,
             source,
             source.length.convert()
         )
-        return Tree(tree, source)
+        checkNotNull(tree) { "Parsing failed" }
+        return Tree(tree, source, language)
     }
 
+    /**
+     * Parse source code from a callback and create a syntax tree.
+     *
+     * If you have already parsed an earlier version of this document and the document
+     * has since been edited, pass the previous syntax tree to [oldTree] so that the
+     * unchanged parts of it can be reused. This will save time and memory. For this
+     * to work correctly, you must have already edited the old syntax tree using the
+     * [Tree.edit] method in a way that exactly matches the source code changes.
+     *
+     * @throws [IllegalStateException]
+     *  If the parser does not have a [language] assigned or
+     *  if parsing was cancelled due to a [timeout][timeoutMicros].
+     */
+    @Throws(IllegalStateException::class)
     actual fun parse(oldTree: Tree?, callback: ParseCallback): Tree {
+        val language = checkNotNull(language) {
+            "The parser has no language assigned"
+        }
         val arena = Arena()
         val payloadRef = StableRef.create(ParsePayload(arena, callback))
         val input = cValue<TSInput> {
@@ -96,17 +152,27 @@ actual class Parser actual constructor() {
                 val result = data.callback(index, point.useContents { convert() })
                 if (result != null) data.value += result
                 bytes!!.pointed.value = result?.length?.convert() ?: 0U
-                result?.cstr?.getPointer(data.memScope)
+                result?.toString()?.cstr?.getPointer(data.memScope)
             }
         }
         val tree = ts_parser_parse(self, oldTree?.self, input)
         arena.clear()
         payloadRef.dispose()
-        return Tree(tree, null)
+        checkNotNull(tree) { "Parsing failed" }
+        return Tree(tree, null, language)
     }
 
+    /**
+     * Instruct the parser to start the next [parse] from the beginning.
+     *
+     * If the parser previously failed because of a [timeout][timeoutMicros],
+     * then by default, it will resume where it left off. If you don't
+     * want to resume, and instead intend to use this parser to parse
+     * some other document, you must call this method first.
+     */
     actual fun reset() = ts_parser_reset(self)
 
+    /** The type of a log message. */
     actual enum class LogType { LEX, PARSE }
 
     private class ParsePayload(

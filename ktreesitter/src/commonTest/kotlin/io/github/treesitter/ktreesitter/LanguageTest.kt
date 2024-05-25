@@ -62,7 +62,7 @@ class LanguageTest : FunSpec({
         val program = language.symbolForName("program", true)
         val state = language.nextState(1U, program!!)
         val lookahead = language.lookaheadIterator(state)
-        lookahead.language shouldBeSameInstanceAs language
+        lookahead.language shouldBe language
     }
 
     test("query()") {

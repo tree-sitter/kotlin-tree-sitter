@@ -1,11 +1,24 @@
 package io.github.treesitter.ktreesitter
 
+/**
+ * A query [predicate](https://tree-sitter.github.io/tree-sitter/using-parsers#predicates)
+ * that associates conditions or arbitrary metadata with a pattern.
+ *
+ * The following predicates are supported by default:
+ *
+ * - `#eq?`, `#not-eq?`, `#any-eq?`, `#any-not-eq?`
+ * - `#match?`, `#not-match?`, `#any-match?`, `#any-not-match?`
+ * - `#any-of?`, `#not-any-of?`
+ *
+ * @property name The name of the predicate.
+ * @property args The arguments given to the predicate.
+ */
 sealed class QueryPredicate(val name: String) {
     abstract val args: List<QueryPredicateArg>
 
-    abstract operator fun invoke(match: QueryMatch): Boolean
+    internal abstract operator fun invoke(match: QueryMatch): Boolean
 
-    override fun toString() = "QueryPredicate(name=$name, args=$args)"
+    final override fun toString() = "QueryPredicate(name=$name, args=$args)"
 
     internal class EqCapture(
         name: String,

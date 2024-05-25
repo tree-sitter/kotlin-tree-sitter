@@ -1,12 +1,14 @@
 import java.io.OutputStream.nullOutputStream
+import java.net.URL
 import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.dokka.base.DokkaBase
 import org.jetbrains.dokka.base.DokkaBaseConfiguration
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
+import org.jetbrains.kotlin.konan.target.PlatformManager
 
 val os: OperatingSystem = OperatingSystem.current()
-val libsDir = layout.buildDirectory.get().dir("tmp").dir("libs")
+val libsDir = layout.buildDirectory.get().dir("libs")
 val treesitterDir = rootDir.resolve("tree-sitter")
 
 version = property("project.version") as String
@@ -168,33 +170,67 @@ signing {
 }
 
 tasks.dokkaHtml {
+    val tmpDir = layout.buildDirectory.get().dir("tmp")
+    val readme = rootDir.resolve("README.md")
+    val url = "https://github.com/tree-sitter/kotlin-tree-sitter/blob/master/ktreesitter"
+
+    inputs.file(readme)
+
     moduleName.set("KTreeSitter")
+
     pluginConfiguration<DokkaBase, DokkaBaseConfiguration> {
         footerMessage = "© 2024 tree-sitter"
+        homepageLink = "https://tree-sitter.github.io/tree-sitter/"
         customAssets = listOf(rootDir.resolve("gradle/logo-icon.svg"))
     }
+
     dokkaSourceSets.configureEach {
         jdkVersion.set(17)
+        noStdlibLink.set(true)
+        // TODO: uncomment when ready
+        // includes.from(tmpDir.file("README.md"))
+        externalDocumentationLink("https://kotlinlang.org/api/core/")
+        sourceLink {
+            localDirectory.set(projectDir)
+            remoteUrl.set(URL(url))
+        }
+    }
+
+    doFirst {
+        copy {
+            from(readme)
+            into(tmpDir)
+            filter { it.replaceFirst("# KTreeSitter", "# Module KTreeSitter") }
+        }
+    }
+
+    doLast {
+        delete(tmpDir.file("README.md"))
     }
 }
 
 tasks.withType<CInteropProcess>().configureEach {
     if (name.startsWith("cinteropTest")) return@configureEach
 
-    val runKonan = File(konanHome.get()).resolve("bin/run_konan")
+    val runKonan = File(konanHome.get()).resolve("bin/run_konan").path
     val libFile = libsDir.dir(konanTarget.name).file(
         "${konanTarget.family.staticPrefix}tree-sitter.${konanTarget.family.staticSuffix}"
     )
+    val objectFile = treesitterDir.resolve("lib.o")
+    val loader = PlatformManager(konanHome.get(), false, konanDataDir.orNull).loader(konanTarget)
 
     doFirst {
+        if (!File(loader.absoluteTargetToolchain).isDirectory) loader.downloadDependencies()
+
         exec {
-            executable = runKonan.path
+            executable = runKonan
             workingDir = treesitterDir
             standardOutput = nullOutputStream()
             args(
                 "clang",
                 "clang",
                 konanTarget.name,
+                "--sysroot", loader.absoluteTargetSysRoot,
                 "-I", treesitterDir.resolve("lib/src"),
                 "-I", treesitterDir.resolve("lib/include"),
                 "-DTREE_SITTER_HIDE_SYMBOLS",
@@ -206,10 +242,8 @@ tasks.withType<CInteropProcess>().configureEach {
             )
         }
 
-        val objectFile = treesitterDir.resolve("lib.o")
-
         exec {
-            executable = runKonan.path
+            executable = runKonan
             workingDir = treesitterDir
             standardOutput = nullOutputStream()
             args("llvm", "llvm-ar", "rcs", libFile, objectFile)

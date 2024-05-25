@@ -45,7 +45,7 @@ class TreeCursorTest : FunSpec({
 
     test("gotoFirstChild()") {
         cursor.gotoFirstChild() shouldBe true
-        cursor.currentNode?.type shouldBe "class_declaration"
+        cursor.currentNode.type shouldBe "class_declaration"
     }
 
     test("gotoLastChild()") {
@@ -55,7 +55,7 @@ class TreeCursorTest : FunSpec({
 
     test("gotoParent()") {
         cursor.gotoParent() shouldBe true
-        cursor.currentNode?.type shouldBe "class_declaration"
+        cursor.currentNode.type shouldBe "class_declaration"
     }
 
     test("gotoNextSibling()") {
@@ -74,7 +74,7 @@ class TreeCursorTest : FunSpec({
 
     test("gotoFirstChildForByte()") {
         cursor.gotoFirstChildForByte(1U) shouldBe 0U
-        cursor.currentNode?.type shouldBe "class_declaration"
+        cursor.currentNode.type shouldBe "class_declaration"
     }
 
     test("gotoFirstChildForPoint()") {

@@ -1,22 +1,57 @@
 package io.github.treesitter.ktreesitter
 
+/**
+ * A class that is used to look up valid symbols in a specific parse state.
+ *
+ * Lookahead iterators can be useful to generate suggestions and improve syntax
+ * error diagnostics. To get symbols valid in an `ERROR` node, use the lookahead
+ * iterator on its first leaf node state. For `MISSING` nodes, a lookahead
+ * iterator created on the previous non-extra leaf node may be appropriate.
+ */
 expect class LookaheadIterator : Iterable<LookaheadIterator.Symbol> {
+    /** The current language of the lookahead iterator. */
     val language: Language
 
+    /**
+     * The current symbol ID.
+     *
+     * The ID of the `ERROR` symbol is equal to `UShort.MAX_VALUE`.
+     */
     val currentSymbol: UShort
 
-    val currentSymbolName: String?
+    /**
+     * The current symbol name.
+     *
+     * Newly created lookahead iterators will contain the `ERROR` symbol.
+     */
+    val currentSymbolName: String
 
+    /**
+     * Reset the lookahead iterator the given [state] and, optionally, another [language].
+     *
+     * @return `true` if the iterator was reset successfully or `false` if it failed.
+     */
     fun reset(state: UShort, language: Language? = null): Boolean
 
+    /**
+     * Advance the lookahead iterator to the next symbol.
+     *
+     * @return `true` if there is a new symbol or `false` otherwise.
+     */
     fun next(): Boolean
 
+    /** Iterate over the symbol IDs. */
     fun symbols(): Sequence<UShort>
 
-    fun symbolNames(): Sequence<String?>
+    /** Iterate over the symbol names. */
+    fun symbolNames(): Sequence<String>
 
-    class Symbol(id: UShort, name: String?) {
+    /** Iterate over both symbol IDs and names. */
+    override operator fun iterator(): Iterator<Symbol>
+
+    /** A class that pairs a symbol ID with its name. */
+    class Symbol(id: UShort, name: String) {
         val id: UShort
-        val name: String?
+        val name: String
     }
 }

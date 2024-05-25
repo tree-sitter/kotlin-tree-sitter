@@ -10,7 +10,7 @@ Kotlin bindings to the Tree-sitter parsing library
   - [ ] JVM
   - [ ] Android
   - [ ] WASI?
-- [ ] Documentation
+- [x] Documentation
 - [ ] Bundled languages
   - [ ] Kotlin
   - [x] Java

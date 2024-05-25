@@ -7,8 +7,19 @@ import kotlin.experimental.ExperimentalNativeApi
 import kotlin.native.ref.createCleaner
 import kotlinx.cinterop.*
 
+/**
+ * A class that represents a set of patterns which match nodes in a syntax tree.
+ *
+ * @constructor
+ *  Create a new query from a particular language and a
+ *  string containing one or more S-expression patterns.
+ * @throws [QueryError] If any error occurred while creating the query.
+ */
 @OptIn(ExperimentalForeignApi::class)
-actual class Query actual constructor(language: Language, source: String) {
+actual class Query @Throws(QueryError::class) actual constructor(
+    language: Language,
+    source: String
+) {
     private val self: CPointer<TSQuery>
 
     private val cursor: CPointer<TSQueryCursor>
@@ -23,8 +34,10 @@ actual class Query actual constructor(language: Language, source: String) {
 
     private val assertions: MutableMap<UInt, MutableMap<String, Pair<String?, Boolean>>>
 
+    /** The number of patterns in the query. */
     actual val patternCount: UInt
 
+    /** The number of captures in the query. */
     actual val captureCount: UInt
 
     init {
@@ -123,7 +136,7 @@ actual class Query actual constructor(language: Language, source: String) {
             val offset = ts_query_start_byte_for_pattern(self, i)
             val row = source.asSequence().withIndex()
                 .takeWhile { it.index.toUInt() <= offset }
-                .count { it.value == '\n' } + 1
+                .count { it.value == '\n' }.toUInt() + 1U
             var j = 0U
             while (j < steps) {
                 var nargs = 0L
@@ -336,22 +349,48 @@ actual class Query actual constructor(language: Language, source: String) {
     @OptIn(ExperimentalNativeApi::class)
     private val cursorCleaner = createCleaner(cursor, ::ts_query_cursor_delete)
 
+    /**
+     * The maximum number of in-progress matches.
+     *
+     * @throws [IllegalArgumentException] If the match limit is set to `0`.
+     */
     actual var matchLimit: UInt
         get() = ts_query_cursor_match_limit(cursor)
-        set(value) = ts_query_cursor_set_match_limit(cursor, value)
+        set(value) {
+            require(value > 0U) { "The match limit cannot be 0" }
+            ts_query_cursor_set_match_limit(cursor, value)
+        }
 
+    /**
+     * The maximum start depth for the query.
+     *
+     * This prevents cursors from exploring children nodes at a certain depth.
+     * Note that if a pattern includes many children, then they will still be checked.
+     *
+     * Default: `UInt.MAX_VALUE`
+     */
     actual var maxStartDepth: UInt = UInt.MAX_VALUE
         set(value) {
             ts_query_cursor_set_max_start_depth(cursor, value)
             field = value
         }
 
+    /**
+     * The range of bytes in which the query will be executed.
+     *
+     * Default: `UInt.MIN_VALUE..UInt.MAX_VALUE`
+     */
     actual var byteRange: UIntRange = UInt.MIN_VALUE..UInt.MAX_VALUE
         set(value) {
             ts_query_cursor_set_byte_range(cursor, value.first, value.last)
             field = value
         }
 
+    /**
+     * The range of points in which the query will be executed.
+     *
+     * Default: `Point.MIN..Point.MAX`
+     */
     actual var pointRange: ClosedRange<Point> = Point.MIN..Point.MAX
         set(value) {
             val start = cValue<TSPoint> { from(value.start) }
@@ -360,12 +399,34 @@ actual class Query actual constructor(language: Language, source: String) {
             field = value
         }
 
+    /**
+     * Check if the query exceeded its maximum number of
+     * in-progress matches during its last execution.
+     */
     actual val didExceedMatchLimit: Boolean
         get() = ts_query_cursor_did_exceed_match_limit(cursor)
 
+    /**
+     * Iterate over all the matches in the order that they were found.
+     *
+     * #### Example
+     *
+     * ```kotlin
+     * query.matches(tree.rootNode) {
+     *      if (name != "ieq?") return@matches true
+     *      val node = it[(args[0] as QueryPredicateArg.Capture).value].first()
+     *      val value = (args[1] as QueryPredicateArg.Literal).value
+     *      value.equals(node.text()?.toString(), ignoreCase = true)
+     *  }
+     * ```
+     *
+     * @param node The node that the query will run on.
+     * @param predicate A function that handles custom predicates.
+     */
+    @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
     actual fun matches(
         node: Node,
-        predicate: QueryPredicate.(QueryMatch) -> Boolean
+        predicate: QueryPredicate.(QueryMatch) -> Boolean = { true }
     ): Sequence<QueryMatch> {
         ts_query_cursor_exec(cursor, self, node.self)
         return sequence {
@@ -378,9 +439,18 @@ actual class Query actual constructor(language: Language, source: String) {
         }
     }
 
+    /**
+     * Iterate over all the individual captures in the order that they appear.
+     *
+     * This is useful if you don't care about _which_ pattern matched.
+     *
+     * @param node The node that the query will run on.
+     * @param predicate A function that handles custom predicates.
+     */
+    @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
     actual fun captures(
         node: Node,
-        predicate: QueryPredicate.(QueryMatch) -> Boolean
+        predicate: QueryPredicate.(QueryMatch) -> Boolean = { true }
     ): Sequence<Pair<UInt, QueryMatch>> {
         ts_query_cursor_exec(cursor, self, node.self)
         return sequence {
@@ -394,48 +464,91 @@ actual class Query actual constructor(language: Language, source: String) {
         }
     }
 
+    /**
+     * Get the property settings for the given pattern index.
+     *
+     * Properties are set using the `#set!` predicate.
+     *
+     * @return A map of properties with optional values.
+     */
     actual fun settings(index: UInt): Map<String, String?> {
         if (index >= patternCount)
             throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
         return settings[index] ?: emptyMap()
     }
 
+    /**
+     * Get the property assertions for the given pattern index.
+     *
+     * Assertions are performed using the `#is?` and `#is-not?` predicates.
+     *
+     * @return
+     *  A map of assertions, where the first item is the optional property value
+     *  and the second item indicates whether the assertion was positive or negative.
+     */
     actual fun assertions(index: UInt): Map<String, Pair<String?, Boolean>> {
         if (index >= patternCount)
             throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
         return assertions[index] ?: emptyMap()
     }
 
+    /**
+     * Disable a certain pattern within a query.
+     *
+     * This prevents the pattern from matching and removes most of the overhead
+     * associated with the pattern. Currently, there is no way to undo this.
+     */
     actual fun disablePattern(index: UInt) {
         if (index >= patternCount)
             throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
         ts_query_disable_pattern(self, index)
     }
 
+    /**
+     * Disable a certain capture within a query.
+     *
+     * This prevents the capture from being returned in matches,
+     * and also avoids most resource usage associated with recording
+     * the capture. Currently, there is no way to undo this.
+     */
     actual fun disableCapture(name: String) {
         if (!captureNames.remove(name))
             throw NoSuchElementException("Capture @$name does not exist")
         ts_query_disable_capture(self, name, name.length.convert())
     }
 
+    /** Get the byte offset where the given pattern starts in the query's source. */
     actual fun startByteForPattern(index: UInt): UInt {
         if (index >= patternCount)
             throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
         return ts_query_start_byte_for_pattern(self, index)
     }
 
+    /** Check if the pattern with the given index has a single root node. */
     actual fun isPatternRooted(index: UInt): Boolean {
         if (index >= patternCount)
             throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
         return ts_query_is_pattern_rooted(self, index)
     }
 
+    /**
+     * Check if the pattern with the given index is "non-local".
+     *
+     * A non-local pattern has multiple root nodes and can match within a
+     * repeating sequence of nodes, as specified by the grammar. Non-local
+     * patterns disable certain optimizations that would otherwise be possible
+     * when executing a query on a specific range of a syntax tree.
+     */
     actual fun isPatternNonLocal(index: UInt): Boolean {
         if (index >= patternCount)
             throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
         return ts_query_is_pattern_non_local(self, index)
     }
 
+    /**
+     * Check if a pattern is guaranteed to match
+     * once a given byte offset is reached.
+     */
     actual fun isPatternGuaranteedAtStep(offset: UInt): Boolean {
         if (offset >= sourceLength)
             throw IndexOutOfBoundsException("Offset $offset exceeds EOF")

@@ -17,6 +17,10 @@ class TreeTest : FunSpec({
         tree.source shouldBe source
     }
 
+    test("language") {
+        tree.language shouldBeSameInstanceAs language
+    }
+
     test("rootNode") {
         tree.rootNode.endByte shouldBe source.length.toUInt()
     }

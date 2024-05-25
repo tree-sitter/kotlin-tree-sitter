@@ -2,9 +2,10 @@ import java.io.OutputStream.nullOutputStream
 import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
+import org.jetbrains.kotlin.konan.target.PlatformManager
 
 val os: OperatingSystem = OperatingSystem.current()
-val libsDir = layout.buildDirectory.get().dir("tmp").dir("libs")
+val libsDir = layout.buildDirectory.get().dir("libs")
 val grammarDir = projectDir.resolve("tree-sitter-java")
 val grammarName = project.name
 val grammarFiles = arrayOf(
@@ -147,7 +148,7 @@ signing {
 tasks.withType<CInteropProcess>().configureEach {
     if (name.startsWith("cinteropTest")) return@configureEach
 
-    val runKonan = File(konanHome.get()).resolve("bin/run_konan")
+    val runKonan = File(konanHome.get()).resolve("bin/run_konan").path
     val libFile = libsDir.dir(konanTarget.name).file(
         konanTarget.family.staticPrefix +
             "tree-sitter-$grammarName." +
@@ -156,19 +157,20 @@ tasks.withType<CInteropProcess>().configureEach {
     val objectFiles = grammarFiles.map {
         grammarDir.resolve(it.nameWithoutExtension + ".o")
     }.toTypedArray()
-
-    inputs.files(*grammarFiles)
-    outputs.file(libFile)
+    val loader = PlatformManager(konanHome.get(), false, konanDataDir.orNull).loader(konanTarget)
 
     doFirst {
+        if (!File(loader.absoluteTargetToolchain).isDirectory) loader.downloadDependencies()
+
         exec {
-            executable = runKonan.path
+            executable = runKonan
             workingDir = grammarDir
             standardOutput = nullOutputStream()
             args(
                 "clang",
                 "clang",
                 konanTarget.name,
+                "--sysroot", loader.absoluteTargetSysRoot,
                 "-I", grammarDir.resolve("src"),
                 "-DTREE_SITTER_HIDE_SYMBOLS",
                 "-std=c11",
@@ -180,12 +182,15 @@ tasks.withType<CInteropProcess>().configureEach {
         }
 
         exec {
-            executable = runKonan.path
+            executable = runKonan
             workingDir = grammarDir
             standardOutput = nullOutputStream()
             args("llvm", "llvm-ar", "rcs", libFile, *objectFiles)
         }
     }
+
+    inputs.files(*grammarFiles)
+    outputs.file(libFile)
 }
 
 tasks.withType<AbstractPublishToMaven>().configureEach {
