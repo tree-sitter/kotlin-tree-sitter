@@ -172,7 +172,7 @@ jobject JNICALL node_child(JNIEnv *env, jobject this, jint index) {
     if (ts_node_child_count(self) <= (uint32_t)index) {
         const char *fmt = "Child index %u is out of bounds";
         char buffer[40] = {0};
-        sprintf(buffer, fmt, (uint32_t)index);
+        sprintf_s(buffer, 40, fmt, (uint32_t)index);
         THROW(IndexOutOfBoundsException, (const char *)buffer);
         return NULL;
     }
@@ -189,7 +189,7 @@ jobject JNICALL node_named_child(JNIEnv *env, jobject this, jint index) {
     if (ts_node_child_count(self) <= (uint32_t)index) {
         const char *fmt = "Child index %u is out of bounds";
         char buffer[40] = {0};
-        sprintf(buffer, fmt, (uint32_t)index);
+        sprintf_s(buffer, 40, fmt, (uint32_t)index);
         THROW(IndexOutOfBoundsException, (const char *)buffer);
         return NULL;
     }
@@ -251,7 +251,7 @@ jstring JNICALL node_field_name_for_child(JNIEnv *env, jobject this, jint index)
     if (ts_node_child_count(self) <= (uint32_t)index) {
         const char *fmt = "Child index %u is out of bounds";
         char buffer[40] = {0};
-        sprintf(buffer, fmt, (uint32_t)index);
+        sprintf_s(buffer, 40, fmt, (uint32_t)index);
         THROW(IndexOutOfBoundsException, (const char *)buffer);
         return NULL;
     }

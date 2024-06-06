@@ -33,7 +33,7 @@ JavaVM *java_vm = NULL;
             return JNI_ERR;                                                                        \
                                                                                                    \
         rc = (*env)->RegisterNatives(env, _cat2(name, class), _cat2(name, methods),                \
-                                     _cat2(name, methods_size));                                   \
+                                     (jint)_cat2(name, methods_size));                             \
         if (rc != JNI_OK)                                                                          \
             return rc;                                                                             \
                                                                                                    \

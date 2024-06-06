@@ -28,7 +28,7 @@ jlong query_init(JNIEnv *env, jclass _class, jlong language, jstring source) {
     char *line = strtok_s((char *)source_chars, "\n", &next_token);
 #endif
     while (line != NULL) {
-        end = start + strlen(line) + 1;
+        end = start + (uint32_t)strlen(line) + 1;
         if (end > error_offset)
             break;
         start = end;
@@ -161,7 +161,7 @@ void query_disable_pattern(JNIEnv *env, jobject this, jint index) {
     } else {
         const char *fmt = "Pattern index %u is out of bounds";
         char buffer[45] = {0};
-        sprintf(buffer, fmt, (uint32_t)index);
+        sprintf_s(buffer, 45, fmt, (uint32_t)index);
         THROW(IndexOutOfBoundsException, (const char *)buffer);
     }
 }
@@ -182,7 +182,7 @@ jint query_start_byte_for_pattern(JNIEnv *env, jobject this, jint index) {
 
     const char *fmt = "Pattern index %u is out of bounds";
     char buffer[45] = {0};
-    sprintf(buffer, fmt, (uint32_t)index);
+    sprintf_s(buffer, 45, fmt, (uint32_t)index);
     THROW(IndexOutOfBoundsException, (const char *)buffer);
     return -1;
 }
@@ -195,7 +195,7 @@ jboolean query_is_pattern_rooted(JNIEnv *env, jobject this, jint index) {
 
     const char *fmt = "Pattern index %u is out of bounds";
     char buffer[45] = {0};
-    sprintf(buffer, fmt, (uint32_t)index);
+    sprintf_s(buffer, 45, fmt, (uint32_t)index);
     THROW(IndexOutOfBoundsException, (const char *)buffer);
     return JNI_FALSE;
 }
@@ -208,7 +208,7 @@ jboolean query_is_pattern_non_local(JNIEnv *env, jobject this, jint index) {
 
     const char *fmt = "Pattern index %u is out of bounds";
     char buffer[45] = {0};
-    sprintf(buffer, fmt, (uint32_t)index);
+    sprintf_s(buffer, 45, fmt, (uint32_t)index);
     THROW(IndexOutOfBoundsException, (const char *)buffer);
     return JNI_FALSE;
 }
