@@ -20,15 +20,16 @@ plugins {
     `maven-publish`
     signing
     alias(libs.plugins.kotlin.mpp)
+    alias(libs.plugins.android.library)
 }
 
 kotlin {
-    // jvm {}
+    jvm {}
 
-    /* androidTarget {
+    androidTarget {
         withSourcesJar(true)
         publishLibraryVariants("release")
-    } */
+    }
 
     when {
         os.isLinux -> listOf(linuxX64(), linuxArm64())
@@ -70,16 +71,23 @@ kotlin {
     }
 }
 
-/*
 android {
-    namespace = "$group.ktreesitter.$grammarName"
-    compileSdk = 34
+    namespace = "io.github.treesitter.ktreesitter.$grammarName"
+    compileSdk = (property("sdk.version.compile") as String).toInt()
+    ndkVersion = property("ndk.version") as String
     defaultConfig {
-        minSdk = 21
+        minSdk = (property("sdk.version.min") as String).toInt()
         ndk {
-            moduleName = "tree-sitter"
+            moduleName = "ktreesitter-java"
             //noinspection ChromeOsAbiSupport
             abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path = file("CMakeLists.txt")
+            buildStagingDirectory = file(".cmake")
+            version = property("cmake.version") as String
         }
     }
     compileOptions {
@@ -90,7 +98,6 @@ android {
         resValues = false
     }
 }
-*/
 
 tasks.create<Jar>("javadocJar") {
     group = "documentation"

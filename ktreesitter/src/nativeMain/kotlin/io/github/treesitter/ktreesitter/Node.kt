@@ -7,7 +7,7 @@ import kotlinx.cinterop.*
 @OptIn(ExperimentalForeignApi::class)
 actual class Node internal constructor(
     internal val self: CValue<TSNode>,
-    internal actual val tree: Tree
+    internal val tree: Tree
 ) {
     /**
      * The numeric ID of the node.
@@ -105,7 +105,7 @@ actual class Node internal constructor(
 
     /** The range of the node in terms of bytes and points. */
     actual val range: Range
-        get() = kts_node_range(self).useContents(TSRange::convert)
+        get() = Range(startPoint, endPoint, startByte, endByte)
 
     /** The start point of the node. */
     actual val startPoint: Point
@@ -175,28 +175,9 @@ actual class Node internal constructor(
             return internalChildren!!
         }
 
-    private var internalNamedChildren: List<Node>? = null
-
     /** This node's _named_ children. */
     actual val namedChildren: List<Node>
-        get() {
-            if (internalNamedChildren == null) {
-                val length = namedChildCount.toInt()
-                if (length == 0) return emptyList()
-                val children = ArrayList<Node>(length)
-                val cursor = ts_tree_cursor_new(self).ptr
-                do {
-                    val node = ts_tree_cursor_current_node(cursor)
-                    if (ts_node_is_named(node))
-                        children += Node(node, tree)
-                } while (ts_tree_cursor_goto_next_sibling(cursor))
-                ts_tree_cursor_delete(cursor)
-                kts_free(cursor)
-                children.trimToSize()
-                internalNamedChildren = children
-            }
-            return internalNamedChildren!!
-        }
+        get() = children.filter(Node::isNamed)
 
     /**
      * The node's child at the given index, if any.
@@ -204,7 +185,11 @@ actual class Node internal constructor(
      * This method is fairly fast, but its cost is technically `log(i)`,
      * so if you might be iterating over a long list of children,
      * you should use [children] or [walk][Node.walk] instead.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [child count][childCount].
      */
+    @Throws(IndexOutOfBoundsException::class)
     actual fun child(index: UInt): Node? {
         if (index < childCount) return ts_node_child(self, index).convert(tree)
         throw IndexOutOfBoundsException("Child index $index is out of bounds")
@@ -216,7 +201,11 @@ actual class Node internal constructor(
      * This method is fairly fast, but its cost is technically `log(i)`,
      * so if you might be iterating over a long list of children,
      * you should use [namedChildren] or [walk][Node.walk] instead.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [named child count][namedChildCount].
      */
+    @Throws(IndexOutOfBoundsException::class)
     actual fun namedChild(index: UInt): Node? {
         if (index < namedChildCount) return ts_node_named_child(self, index).convert(tree)
         throw IndexOutOfBoundsException("Child index $index is out of bounds")
@@ -252,13 +241,15 @@ actual class Node internal constructor(
     }
 
     /** Get a list of children with the given field name. */
-    actual fun childrenByFieldName(name: String): List<Node> {
-        val lang = ts_tree_language(tree.self)
-        val id = ts_language_field_id_for_name(lang, name, name.length.convert())
-        return childrenByFieldId(id)
-    }
+    actual fun childrenByFieldName(name: String) =
+        childrenByFieldId(tree.language.fieldIdForName(name))
 
-    /** Get the field name of this node’s child at the given index, if available. */
+    /**
+     * Get the field name of this node’s child at the given index, if available.
+     *
+     * @throws [IndexOutOfBoundsException] If the index exceeds the [child count][childCount].
+     */
+    @Throws(IndexOutOfBoundsException::class)
     actual fun fieldNameForChild(index: UInt): String? {
         if (index < childCount) return ts_node_field_name_for_child(self, index)?.toKString()
         throw IndexOutOfBoundsException("Child index $index is out of bounds")
@@ -315,7 +306,6 @@ actual class Node internal constructor(
         )
         ts_node_edit(node, inputEdit)
         internalChildren = null
-        internalNamedChildren = null
         arena.clear()
     }
 
@@ -323,7 +313,7 @@ actual class Node internal constructor(
     actual fun walk() = TreeCursor(this)
 
     /** Get the source code of the node, if available. */
-    actual fun text() = tree.source?.run {
+    actual fun text() = tree.text()?.run {
         subSequence(startByte.toInt(), minOf(endByte.toInt(), length))
     }
 
@@ -340,5 +330,5 @@ actual class Node internal constructor(
 
     actual override fun hashCode(): Int = kts_node_hash(self)
 
-    actual override fun toString() = "Node(type=$type, startByte=$startByte, endByte=$endByte)"
+    override fun toString() = "Node(type=$type, startByte=$startByte, endByte=$endByte)"
 }

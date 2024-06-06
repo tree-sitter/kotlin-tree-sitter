@@ -4,7 +4,9 @@ import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.dokka.base.DokkaBase
 import org.jetbrains.dokka.base.DokkaBaseConfiguration
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import org.jetbrains.kotlin.konan.target.PlatformManager
 
 val os: OperatingSystem = OperatingSystem.current()
@@ -17,7 +19,7 @@ plugins {
     `maven-publish`
     signing
     alias(libs.plugins.kotlin.mpp)
-    // alias(libs.plugins.android.library)
+    alias(libs.plugins.android.library)
     alias(libs.plugins.kotest)
     alias(libs.plugins.dokka)
 }
@@ -29,12 +31,12 @@ buildscript {
 }
 
 kotlin {
-    // jvm {}
+    jvm {}
 
-    /* androidTarget {
+    androidTarget {
         withSourcesJar(true)
         publishLibraryVariants("release")
-    } */
+    }
 
     when {
         os.isLinux -> listOf(linuxX64(), linuxArm64())
@@ -68,7 +70,7 @@ kotlin {
             languageSettings {
                 @OptIn(ExperimentalKotlinGradlePluginApi::class)
                 compilerOptions {
-                    freeCompilerArgs.add("-Xexpect-actual-classes")
+                    freeCompilerArgs.addAll("-Xexpect-actual-classes")
                 }
             }
 
@@ -85,30 +87,51 @@ kotlin {
                 }
             }
         }
+
+        jvmTest {
+            dependencies {
+                implementation(libs.bundles.kotest.junit)
+            }
+        }
+
+        getByName("androidUnitTest") {
+            dependencies {
+                implementation(libs.kotest.junit.runner)
+            }
+        }
     }
 }
 
-/*
 android {
-    namespace = "$group.$name"
-    compileSdk = 34
+    namespace = "io.github.treesitter.$name"
+    compileSdk = (property("sdk.version.compile") as String).toInt()
+    ndkVersion = property("ndk.version") as String
     defaultConfig {
-        minSdk = 21
+        minSdk = (property("sdk.version.min") as String).toInt()
         ndk {
-            moduleName = "tree-sitter"
+            moduleName = "ktreesitter"
             //noinspection ChromeOsAbiSupport
             abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path = file("CMakeLists.txt")
+            buildStagingDirectory = file(".cmake")
+            version = property("cmake.version") as String
         }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    testOptions.unitTests.all {
+        it.useJUnitPlatform()
+    }
     buildFeatures {
         resValues = false
     }
 }
-*/
 
 tasks.create<Jar>("javadocJar") {
     group = "documentation"
@@ -209,6 +232,13 @@ tasks.dokkaHtml {
     }
 }
 
+tasks.withType<KotlinJvmCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+        freeCompilerArgs.add("-Xlambdas=indy")
+    }
+}
+
 tasks.withType<CInteropProcess>().configureEach {
     if (name.startsWith("cinteropTest")) return@configureEach
 
@@ -236,7 +266,8 @@ tasks.withType<CInteropProcess>().configureEach {
                 "-DTREE_SITTER_HIDE_SYMBOLS",
                 "-fvisibility=hidden",
                 "-std=c11",
-                "-O3",
+                "-O2",
+                "-g",
                 "-c",
                 treesitterDir.resolve("lib/src/lib.c")
             )
@@ -253,6 +284,42 @@ tasks.withType<CInteropProcess>().configureEach {
     outputs.file(libFile)
 }
 
+tasks.getByName<Test>("jvmTest") {
+    useJUnitPlatform()
+    reports.junitXml.apply {
+        required.set(true)
+        outputLocation.set(layout.buildDirectory.dir("reports/xml"))
+    }
+    val libraryPath = buildString {
+        append(file(".cmake/build").path)
+        val sep = if (os.isWindows) ";" else ":"
+        rootProject.project("languages").subprojects.joinTo(this, sep, sep) {
+            it.file(".cmake/build").path
+        }
+    }
+    systemProperty("java.library.path", libraryPath)
+    systemProperty("gradle.build.dir", layout.buildDirectory.get().asFile.path)
+}
+
 tasks.withType<AbstractPublishToMaven>().configureEach {
     mustRunAfter(tasks.withType<Sign>())
+}
+
+gradle.taskGraph.whenReady {
+    tasks.getByName<Test>("testDebugUnitTest") {
+        val buildTasks = rootProject.subprojects.mapNotNull {
+            it.tasks.findByName("buildCMakeDebug[x86_64]")
+        }
+        val sep = if (os.isWindows) ";" else ":"
+        val path = buildTasks.joinToString(sep) {
+            it.outputs.files.singleFile.path
+        }
+        systemProperty("java.library.path", path)
+        val toolchain = android.ndkDirectory.resolve(
+            "toolchains/llvm/prebuilt/linux-x86_64/sysroot" +
+                "/usr/lib/x86_64-linux-android/${android.compileSdk}"
+        )
+        assert(toolchain.isDirectory) { "$toolchain is not a directory" }
+        environment("LD_LIBRARY_PATH", toolchain.path)
+    }
 }

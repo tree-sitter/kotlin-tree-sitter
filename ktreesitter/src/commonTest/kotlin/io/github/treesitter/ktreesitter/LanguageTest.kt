@@ -1,6 +1,6 @@
 package io.github.treesitter.ktreesitter
 
-import io.github.treesitter.ktreesitter.java.language as java
+import io.github.treesitter.ktreesitter.java.TreeSitterJava
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.*
@@ -10,7 +10,7 @@ import io.kotest.matchers.string.*
 import io.kotest.matchers.types.*
 
 class LanguageTest : FunSpec({
-    val language = Language(java())
+    val language = Language(TreeSitterJava.language())
 
     test("version") {
         language.version shouldBe 14U
@@ -33,8 +33,8 @@ class LanguageTest : FunSpec({
     }
 
     test("symbolForName()") {
-        language.symbolForName(";", false).shouldNotBeNull()
-        language.symbolForName("program", true).shouldNotBeNull()
+        language.symbolForName(";", false) shouldBeGreaterThan 0U
+        language.symbolForName("program", true) shouldBeGreaterThan 0U
     }
 
     test("isNamed()") {
@@ -50,17 +50,17 @@ class LanguageTest : FunSpec({
     }
 
     test("fieldIdForName()") {
-        language.fieldIdForName("body").shouldNotBeNull()
+        language.fieldIdForName("body") shouldBeGreaterThan 0U
     }
 
     test("nextState()") {
         val program = language.symbolForName("program", true)
-        language.nextState(1U, program!!) shouldBeGreaterThan 0U
+        language.nextState(1U, program) shouldBeGreaterThan 0U
     }
 
     test("lookaheadIterator()") {
         val program = language.symbolForName("program", true)
-        val state = language.nextState(1U, program!!)
+        val state = language.nextState(1U, program)
         val lookahead = language.lookaheadIterator(state)
         lookahead.language shouldBe language
     }
@@ -70,11 +70,11 @@ class LanguageTest : FunSpec({
     }
 
     test("equals()") {
-        Language(java()) shouldBe Language(java())
+        Language(TreeSitterJava.language()) shouldBe Language(TreeSitterJava.language())
     }
 
     test("hashCode()") {
-        language shouldHaveSameHashCodeAs java()
+        language shouldHaveSameHashCodeAs TreeSitterJava.language()
     }
 
     test("toString()") {

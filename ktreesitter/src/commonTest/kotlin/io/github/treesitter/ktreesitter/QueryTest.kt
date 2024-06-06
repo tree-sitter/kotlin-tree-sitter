@@ -1,6 +1,6 @@
 package io.github.treesitter.ktreesitter
 
-import io.github.treesitter.ktreesitter.java.language as java
+import io.github.treesitter.ktreesitter.java.TreeSitterJava
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowWithMessage
@@ -12,7 +12,7 @@ import io.kotest.matchers.*
 import io.kotest.matchers.collections.*
 
 class QueryTest : FunSpec({
-    val language = Language(java())
+    val language = Language(TreeSitterJava.language())
     val parser = Parser(language)
     val source = """
     (identifier) @identifier
@@ -25,7 +25,7 @@ class QueryTest : FunSpec({
     test("constructor") {
         shouldNotThrowAny { Query(language, "") }
         shouldThrowWithMessage<QueryError.Syntax>(
-            "Invalid syntax at row 1, column 1"
+            "Invalid syntax at row 0, column 0"
         ) {
             Query(language, "identifier)")
         }
@@ -33,27 +33,27 @@ class QueryTest : FunSpec({
             Query(language, "(identifier) @")
         }
         shouldThrowWithMessage<QueryError.Capture>(
-            "Invalid capture name at row 2, column 11: bar"
+            "Invalid capture name at row 1, column 10: bar"
         ) {
             Query(language, "((identifier) @foo\n (#test? @bar))")
         }
         shouldThrowWithMessage<QueryError.NodeType>(
-            "Invalid node type at row 1, column 2: foo"
+            "Invalid node type at row 0, column 1: foo"
         ) {
             Query(language, "(foo)")
         }
         shouldThrowWithMessage<QueryError.Field>(
-            "Invalid field name at row 1, column 1: foo"
+            "Invalid field name at row 0, column 0: foo"
         ) {
             Query(language, "foo: (identifier)")
         }
         shouldThrowWithMessage<QueryError.Structure>(
-            "Impossible pattern at row 1, column 10"
+            "Impossible pattern at row 0, column 9"
         ) {
             Query(language, "(program (identifier))")
         }
         shouldThrowWithMessage<QueryError.Predicate>(
-            "Invalid predicate in pattern at row 2: #any-of? expects at least 2 arguments, got 0"
+            "Invalid predicate in pattern at row 1: #any-of? expects at least 2 arguments, got 0"
         ) {
             Query(language, "\n((identifier) @foo\n (#any-of?))")
         }
@@ -260,26 +260,28 @@ class QueryTest : FunSpec({
     }
 
     test("disablePattern()") {
-        val tree = parser.parse("class Foo {}")
         val query = Query(language, source)
         query.disablePattern(1U)
+        val tree = parser.parse("class Foo {}")
         val matches = query.captures(tree.rootNode).toList()
         matches.forSingle {
             it.second.captures[0].node.type shouldBe "identifier"
         }
+
         shouldThrow<IndexOutOfBoundsException> {
             query.disablePattern(2U)
         }
     }
 
     test("disableCapture()") {
-        val tree = parser.parse("class Foo {}")
         val query = Query(language, source)
         query.disableCapture("body")
+        val tree = parser.parse("class Foo {}")
         val matches = query.captures(tree.rootNode).toList()
         matches.shouldHaveSize(2).forAll {
             it.second.captures[0].node.type shouldBe "identifier"
         }
+
         shouldThrow<NoSuchElementException> {
             query.disableCapture("none")
         }

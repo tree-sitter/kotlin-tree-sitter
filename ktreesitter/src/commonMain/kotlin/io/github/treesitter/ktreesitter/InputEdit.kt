@@ -1,11 +1,13 @@
 package io.github.treesitter.ktreesitter
 
+import kotlin.jvm.JvmName
+
 /** An edit to a text document. */
 data class InputEdit(
-    val startByte: UInt,
-    val oldEndByte: UInt,
-    val newEndByte: UInt,
-    val startPoint: Point,
-    val oldEndPoint: Point,
-    val newEndPoint: Point
+    @get:JvmName("startByte") val startByte: UInt,
+    @get:JvmName("oldEndByte") val oldEndByte: UInt,
+    @get:JvmName("newEndByte") val newEndByte: UInt,
+    @get:JvmName("startPoint") val startPoint: Point,
+    @get:JvmName("oldEndPoint") val oldEndPoint: Point,
+    @get:JvmName("newEndPoint") val newEndPoint: Point
 )

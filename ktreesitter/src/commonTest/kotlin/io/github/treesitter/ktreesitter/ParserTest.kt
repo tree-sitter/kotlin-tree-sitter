@@ -1,6 +1,7 @@
 package io.github.treesitter.ktreesitter
 
-import io.github.treesitter.ktreesitter.java.language as java
+import io.github.treesitter.ktreesitter.java.TreeSitterJava
+import io.kotest.assertions.throwables.shouldNotThrowAnyUnit
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.inspectors.forSome
 import io.kotest.matchers.*
@@ -10,11 +11,11 @@ import io.kotest.matchers.string.*
 import io.kotest.matchers.types.*
 
 class ParserTest : FunSpec({
-    val language = Language(java())
-    val parser = Parser(language)
+    val parser = Parser()
 
     test("language") {
-        parser.language shouldBeSameInstanceAs language
+        val language = Language(TreeSitterJava.language())
+        parser.language.shouldBeNull()
         parser.language = language
         parser.language shouldBeSameInstanceAs language
     }
@@ -33,16 +34,18 @@ class ParserTest : FunSpec({
     }
 
     test("logger") {
-        parser.logger shouldBe null
-        parser.logger = { _, _ -> }
-        parser.logger shouldNotBe null
+        shouldNotThrowAnyUnit {
+            parser.logger = { _, _ ->
+                throw UnsupportedOperationException()
+            }
+        }
     }
 
     test("parse(source)") {
         // UTF-8
         var source = "class Foo {}"
         var tree = parser.parse(source)
-        tree.source?.get(5) shouldBe ' '
+        tree.text()?.get(5) shouldBe ' '
 
         // logging
         val logs = mutableListOf<String>()

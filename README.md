@@ -7,8 +7,8 @@ Kotlin bindings to the Tree-sitter parsing library
 - [ ] CI
 - [ ] Implementation
   - [x] Native
-  - [ ] JVM
-  - [ ] Android
+  - [x] JVM
+  - [x] Android
   - [ ] WASI?
 - [x] Documentation
 - [ ] Bundled languages
@@ -25,3 +25,4 @@ Kotlin bindings to the Tree-sitter parsing library
   - [ ] CMake
 - [ ] Gradle plugin
 - [ ] Package
+- [ ] DSL?

@@ -2,8 +2,6 @@ package io.github.treesitter.ktreesitter
 
 /** A single node within a [syntax tree][Tree]. */
 expect class Node {
-    internal val tree: Tree
-
     /**
      * The numeric ID of the node.
      *
@@ -136,7 +134,11 @@ expect class Node {
      * This method is fairly fast, but its cost is technically
      * `log(i)`, so if you might be iterating over a long list of
      * children, you should use [children] or [Tree.walk] instead.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [child count][childCount].
      */
+    @Throws(IndexOutOfBoundsException::class)
     fun child(index: UInt): Node?
 
     /**
@@ -145,7 +147,11 @@ expect class Node {
      * This method is fairly fast, but its cost is technically `log(i)`,
      * so if you might be iterating over a long list of children,
      * you should use [namedChildren] or [walk][Node.walk] instead.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [named child count][namedChildCount].
      */
+    @Throws(IndexOutOfBoundsException::class)
     fun namedChild(index: UInt): Node?
 
     /**
@@ -164,7 +170,12 @@ expect class Node {
     /** Get a list of children with the given field name. */
     fun childrenByFieldName(name: String): List<Node>
 
-    /** Get the field name of this node’s child at the given index, if available. */
+    /**
+     * Get the field name of this node’s child at the given index, if available.
+     *
+     * @throws [IndexOutOfBoundsException] If the index exceeds the [child count][childCount].
+     */
+    @Throws(IndexOutOfBoundsException::class)
     fun fieldNameForChild(index: UInt): String?
 
     /**
@@ -213,6 +224,4 @@ expect class Node {
     override fun equals(other: Any?): Boolean
 
     override fun hashCode(): Int
-
-    override fun toString(): String
 }

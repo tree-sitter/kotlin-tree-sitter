@@ -2,8 +2,6 @@ package io.github.treesitter.ktreesitter
 
 /** A class that represents a syntax tree. */
 expect class Tree {
-    internal var source: String?
-
     /** The root node of the syntax tree. */
     val rootNode: Node
 

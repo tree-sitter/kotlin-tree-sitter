@@ -53,5 +53,8 @@ expect class LookaheadIterator : Iterable<LookaheadIterator.Symbol> {
     class Symbol(id: UShort, name: String) {
         val id: UShort
         val name: String
+
+        operator fun component1(): UShort
+        operator fun component2(): String
     }
 }

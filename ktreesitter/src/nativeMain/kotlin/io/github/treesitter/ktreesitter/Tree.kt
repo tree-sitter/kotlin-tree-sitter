@@ -10,7 +10,7 @@ import kotlinx.cinterop.*
 @OptIn(ExperimentalForeignApi::class)
 actual class Tree internal constructor(
     internal val self: CPointer<TSTree>,
-    internal actual var source: String?,
+    private var source: String?,
     /** The language that was used to parse the syntax tree. */
     actual val language: Language
 ) {
@@ -82,4 +82,6 @@ actual class Tree internal constructor(
         kts_free(ranges)
         return result
     }
+
+    override fun toString() = "Tree(language=$language, source=$source)"
 }

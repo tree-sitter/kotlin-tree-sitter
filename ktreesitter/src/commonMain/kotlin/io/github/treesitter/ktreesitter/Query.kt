@@ -93,6 +93,8 @@ expect class Query @Throws(QueryError::class) constructor(language: Language, so
      * Properties are set using the `#set!` predicate.
      *
      * @return A map of properties with optional values.
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
      */
     fun settings(index: UInt): Map<String, String?>
 
@@ -104,7 +106,10 @@ expect class Query @Throws(QueryError::class) constructor(language: Language, so
      * @return
      *  A map of assertions, where the first item is the optional property value
      *  and the second item indicates whether the assertion was positive or negative.
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
      */
+    @Throws(IndexOutOfBoundsException::class)
     fun assertions(index: UInt): Map<String, Pair<String?, Boolean>>
 
     /**
@@ -112,7 +117,11 @@ expect class Query @Throws(QueryError::class) constructor(language: Language, so
      *
      * This prevents the pattern from matching and removes most of the overhead
      * associated with the pattern. Currently, there is no way to undo this.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
      */
+    @Throws(IndexOutOfBoundsException::class)
     fun disablePattern(index: UInt)
 
     /**
@@ -121,13 +130,28 @@ expect class Query @Throws(QueryError::class) constructor(language: Language, so
      * This prevents the capture from being returned in matches,
      * and also avoids most resource usage associated with recording
      * the capture. Currently, there is no way to undo this.
+     *
+     * @throws [NoSuchElementException] If the capture does not exist.
      */
+    @Throws(NoSuchElementException::class)
     fun disableCapture(name: String)
 
-    /** Get the byte offset where the given pattern starts in the query's source. */
+    /**
+     * Get the byte offset where the given pattern starts in the query's source.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
+     */
+    @Throws(IndexOutOfBoundsException::class)
     fun startByteForPattern(index: UInt): UInt
 
-    /** Check if the pattern with the given index has a single root node. */
+    /**
+     * Check if the pattern with the given index has a single root node.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
+     */
+    @Throws(IndexOutOfBoundsException::class)
     fun isPatternRooted(index: UInt): Boolean
 
     /**
@@ -137,12 +161,18 @@ expect class Query @Throws(QueryError::class) constructor(language: Language, so
      * repeating sequence of nodes, as specified by the grammar. Non-local
      * patterns disable certain optimizations that would otherwise be possible
      * when executing a query on a specific range of a syntax tree.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
      */
+    @Throws(IndexOutOfBoundsException::class)
     fun isPatternNonLocal(index: UInt): Boolean
 
     /**
-     * Check if a pattern is guaranteed to match
-     * once a given byte offset is reached.
+     * Check if a pattern is guaranteed to match once a given byte offset is reached.
+     *
+     * @throws [IndexOutOfBoundsException] If the offset exceeds the source length.
      */
+    @Throws(IndexOutOfBoundsException::class)
     fun isPatternGuaranteedAtStep(offset: UInt): Boolean
 }

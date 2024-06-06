@@ -183,4 +183,6 @@ actual class TreeCursor private constructor(
         internalNode = null
         return index.convert<UInt>()
     }
+
+    override fun toString() = "TreeCursor(tree=$tree)"
 }

@@ -26,7 +26,7 @@ expect class Language @Throws(IllegalArgumentException::class) constructor(langu
     fun symbolName(symbol: UShort): String?
 
     /** Get the numerical ID for the given node type. */
-    fun symbolForName(name: String, isNamed: Boolean): UShort?
+    fun symbolForName(name: String, isNamed: Boolean): UShort
 
     /**
      * Check if the node for the given numerical ID is named
@@ -42,7 +42,7 @@ expect class Language @Throws(IllegalArgumentException::class) constructor(langu
     fun fieldNameForId(id: UShort): String?
 
     /** Get the numerical ID for the given field name. */
-    fun fieldIdForName(name: String): UShort?
+    fun fieldIdForName(name: String): UShort
 
     /**
      * Get the next parse state.
@@ -75,17 +75,4 @@ expect class Language @Throws(IllegalArgumentException::class) constructor(langu
     override fun equals(other: Any?): Boolean
 
     override fun hashCode(): Int
-
-    companion object {
-        /**
-         * The latest ABI version that is supported by the current version of the library.
-         *
-         * The Tree-sitter library is generally backwards-compatible with languages
-         * generated using older CLI versions, but is not forwards-compatible.
-         */
-        val LANGUAGE_VERSION: UInt
-
-        /** The earliest ABI version that is supported by the current version of the library. */
-        val MIN_COMPATIBLE_LANGUAGE_VERSION: UInt
-    }
 }

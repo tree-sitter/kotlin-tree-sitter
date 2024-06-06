@@ -14,7 +14,7 @@ import kotlinx.cinterop.*
  * iterator created on the previous non-extra leaf node may be appropriate.
  */
 @OptIn(ExperimentalForeignApi::class)
-actual class LookaheadIterator internal constructor(
+actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal constructor(
     language: Language,
     private val state: UShort
 ) : Iterable<LookaheadIterator.Symbol> {

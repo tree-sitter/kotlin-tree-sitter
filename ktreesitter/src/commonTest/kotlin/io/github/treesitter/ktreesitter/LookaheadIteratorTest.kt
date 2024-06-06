@@ -1,14 +1,13 @@
 package io.github.treesitter.ktreesitter
 
-import io.github.treesitter.ktreesitter.java.language as java
+import io.github.treesitter.ktreesitter.java.TreeSitterJava
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.*
 import io.kotest.matchers.collections.*
 
 class LookaheadIteratorTest : FunSpec({
-    val language = Language(java())
-    val program = language.symbolForName("program", true)
-    val state = language.nextState(1U, program!!)
+    val language = Language(TreeSitterJava.language())
+    val state = language.nextState(1U, 138U)
     val lookahead = language.lookaheadIterator(state)
 
     test("currentSymbol") {

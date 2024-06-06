@@ -17,22 +17,20 @@ import kotlinx.cinterop.*
  */
 @OptIn(ExperimentalForeignApi::class)
 actual class Query @Throws(QueryError::class) actual constructor(
-    language: Language,
-    source: String
+    private val language: Language,
+    private val source: String
 ) {
     private val self: CPointer<TSQuery>
 
     private val cursor: CPointer<TSQueryCursor>
 
-    private val sourceLength = source.length.toUInt()
-
     private val captureNames: MutableList<String>
 
-    private val predicates: MutableMap<UInt, MutableList<QueryPredicate>>
+    private val predicates: List<MutableList<QueryPredicate>>
 
-    private val settings: MutableMap<UInt, MutableMap<String, String?>>
+    private val settings: List<MutableMap<String, String?>>
 
-    private val assertions: MutableMap<UInt, MutableMap<String, Pair<String?, Boolean>>>
+    private val assertions: List<MutableMap<String, Pair<String?, Boolean>>>
 
     /** The number of patterns in the query. */
     actual val patternCount: UInt
@@ -54,7 +52,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
 
         if (query == null) {
             var start = 0U
-            var row = 1U
+            var row = 0U
             val offset = errorOffset.value
             for (line in source.splitToSequence('\n')) {
                 val lineEnd = start + line.length.toUInt() + 1U
@@ -62,33 +60,33 @@ actual class Query @Throws(QueryError::class) actual constructor(
                 start = lineEnd
                 row += 1U
             }
-            val column = offset - start + 1U
+            val column = offset - start
 
             val exception = when (errorType.value) {
                 TSQueryError.TSQueryErrorSyntax -> {
                     if (offset < source.length.toUInt()) {
-                        QueryError.Syntax(row, column)
+                        QueryError.Syntax(row.toLong(), column.toLong())
                     } else {
-                        QueryError.Syntax(null, null)
+                        QueryError.Syntax(-1, -1)
                     }
                 }
                 TSQueryError.TSQueryErrorCapture -> {
                     val suffix = source.subSequence(offset.toInt(), source.length)
                     val end = suffix.indexOfFirst { !kts_is_valid_predicate_char(it.code) }
                     val error = suffix.subSequence(0, end.takeIf { it > -1 } ?: suffix.length)
-                    QueryError.Capture(row, column, error)
+                    QueryError.Capture(row, column, error.toString())
                 }
                 TSQueryError.TSQueryErrorNodeType -> {
                     val suffix = source.subSequence(offset.toInt(), source.length)
                     val end = suffix.indexOfFirst { !kts_is_valid_identifier_char(it.code) }
                     val error = suffix.subSequence(0, end.takeIf { it > -1 } ?: suffix.length)
-                    QueryError.NodeType(row, column, error)
+                    QueryError.NodeType(row, column, error.toString())
                 }
                 TSQueryError.TSQueryErrorField -> {
                     val suffix = source.subSequence(offset.toInt(), source.length)
                     val end = suffix.indexOfFirst { !kts_is_valid_identifier_char(it.code) }
                     val error = suffix.subSequence(0, end.takeIf { it > -1 } ?: suffix.length)
-                    QueryError.Field(row, column, error)
+                    QueryError.Field(row, column, error.toString())
                 }
                 TSQueryError.TSQueryErrorStructure -> QueryError.Structure(row, column)
                 // language errors are handled in the Language class
@@ -103,9 +101,9 @@ actual class Query @Throws(QueryError::class) actual constructor(
         cursor = ts_query_cursor_new()!!
         patternCount = ts_query_pattern_count(self)
         captureCount = ts_query_capture_count(self)
-        predicates = mutableMapOf()
-        settings = mutableMapOf()
-        assertions = mutableMapOf()
+        predicates = List(patternCount.toInt()) { mutableListOf() }
+        settings = List(patternCount.toInt()) { mutableMapOf() }
+        assertions = List(patternCount.toInt()) { mutableMapOf() }
         captureNames = MutableList(captureCount.toInt()) {
             memScoped {
                 val length = alloc<UIntVar>()
@@ -132,16 +130,16 @@ actual class Query @Throws(QueryError::class) actual constructor(
                 val result = ts_query_predicates_for_pattern(self, i, count.ptr)
                 steps = count.value
                 if (steps > 0U) result else null
-            } ?: break
+            } ?: continue
             val offset = ts_query_start_byte_for_pattern(self, i)
             val row = source.asSequence().withIndex()
                 .takeWhile { it.index.toUInt() <= offset }
-                .count { it.value == '\n' }.toUInt() + 1U
+                .count { it.value == '\n' }.toUInt()
             var j = 0U
             while (j < steps) {
                 var nargs = 0L
                 while (tokens[nargs].type != TSQueryPredicateStepTypeDone) ++nargs
-                val t0 = tokens[0]
+                val t0 = tokens[0L]
                 if (t0.type == TSQueryPredicateStepTypeCapture) {
                     throw QueryError.Predicate(row, "@${captureNames[t0.value_id]}")
                 }
@@ -154,7 +152,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                                 "#$pred expects 2 arguments, got ${nargs - 1L}"
                             )
                         }
-                        val t1 = tokens[1]
+                        val t1 = tokens[1L]
                         if (t1.type != TSQueryPredicateStepTypeCapture) {
                             val value = stringValues[t1.value_id]
                             throw QueryError.Predicate(
@@ -182,7 +180,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                                 isAny
                             )
                         }
-                        predicates.put(i, value)
+                        predicates[i] += value
                     }
 
                     "match?", "not-match?", "any-match?", "any-not-match?" -> {
@@ -192,7 +190,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                                 "#$pred expects 2 arguments, got ${nargs - 1L}"
                             )
                         }
-                        val t1 = tokens[1]
+                        val t1 = tokens[1L]
                         if (t1.type != TSQueryPredicateStepTypeCapture) {
                             val value = stringValues[t1.value_id]
                             throw QueryError.Predicate(
@@ -200,7 +198,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                                 "first argument to #$pred must be a capture name, got \"$value\""
                             )
                         }
-                        val t2 = tokens[2]
+                        val t2 = tokens[2L]
                         if (t2.type != TSQueryPredicateStepTypeString) {
                             val value = captureNames[t1.value_id]
                             throw QueryError.Predicate(
@@ -220,7 +218,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                             pred == "match?" || pred == "any-match?",
                             pred == "any-match?" || pred == "any-not-match?"
                         )
-                        predicates.put(i, value)
+                        predicates[i] += value
                     }
 
                     "any-of?", "not-any-of?" -> {
@@ -230,7 +228,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                                 "#$pred expects at least 2 arguments, got ${nargs - 1L}"
                             )
                         }
-                        val t1 = tokens[1]
+                        val t1 = tokens[1L]
                         if (t1.type != TSQueryPredicateStepTypeCapture) {
                             val value = stringValues[t1.value_id]
                             throw QueryError.Predicate(
@@ -255,7 +253,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                             values,
                             pred == "any-of?"
                         )
-                        predicates.put(i, value)
+                        predicates[i] += value
                     }
 
                     "is?", "is-not?" -> {
@@ -265,7 +263,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                                 "#$pred expects 1-2 arguments, got ${nargs - 1L}"
                             )
                         }
-                        val t1 = tokens[1]
+                        val t1 = tokens[1L]
                         if (t1.type != TSQueryPredicateStepTypeString) {
                             val value = captureNames[t1.value_id]
                             throw QueryError.Predicate(
@@ -277,17 +275,18 @@ actual class Query @Throws(QueryError::class) actual constructor(
                         val value = if (nargs == 2L) {
                             Pair(null, pred == "is?")
                         } else {
-                            val t2 = tokens[2]
+                            val t2 = tokens[2L]
                             if (t2.type != TSQueryPredicateStepTypeString) {
                                 val value = captureNames[t2.value_id]
                                 throw QueryError.Predicate(
                                     row,
-                                    "second argument to #$pred must be a string literal, got @$value"
+                                    "second argument to #$pred must be a string literal, " +
+                                        "got @$value"
                                 )
                             }
                             Pair(stringValues[t2.value_id], pred == "is?")
                         }
-                        assertions.put(i, key, value)
+                        assertions[i][key] = value
                     }
 
                     "set!" -> {
@@ -297,7 +296,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                                 "#$pred expects 1-2 arguments, got ${nargs - 1L}"
                             )
                         }
-                        val t1 = tokens[1]
+                        val t1 = tokens[1L]
                         if (t1.type != TSQueryPredicateStepTypeString) {
                             val value = captureNames[t1.value_id]
                             throw QueryError.Predicate(
@@ -309,7 +308,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                         val value = if (nargs == 2L) {
                             null
                         } else {
-                            val t2 = tokens[2]
+                            val t2 = tokens[2L]
                             if (t2.type != TSQueryPredicateStepTypeString) {
                                 val value = captureNames[t2.value_id]
                                 throw QueryError.Predicate(
@@ -319,7 +318,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                             }
                             stringValues[t2.value_id]
                         }
-                        settings.put(i, key, value)
+                        settings[i][key] = value
                     }
 
                     else -> {
@@ -331,7 +330,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                                 QueryPredicateArg.Capture(captureNames[t.value_id])
                             }
                         }
-                        predicates.put(i, QueryPredicate.Generic(pred, args))
+                        predicates[i] += QueryPredicate.Generic(pred, args)
                     }
                 }
 
@@ -470,11 +469,14 @@ actual class Query @Throws(QueryError::class) actual constructor(
      * Properties are set using the `#set!` predicate.
      *
      * @return A map of properties with optional values.
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
      */
+    @Throws(IndexOutOfBoundsException::class)
     actual fun settings(index: UInt): Map<String, String?> {
         if (index >= patternCount)
-            throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
-        return settings[index] ?: emptyMap()
+            throw IndexOutOfBoundsException("Pattern index $index is out of bounds")
+        return settings[index]
     }
 
     /**
@@ -485,11 +487,14 @@ actual class Query @Throws(QueryError::class) actual constructor(
      * @return
      *  A map of assertions, where the first item is the optional property value
      *  and the second item indicates whether the assertion was positive or negative.
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
      */
+    @Throws(IndexOutOfBoundsException::class)
     actual fun assertions(index: UInt): Map<String, Pair<String?, Boolean>> {
         if (index >= patternCount)
-            throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
-        return assertions[index] ?: emptyMap()
+            throw IndexOutOfBoundsException("Pattern index $index is out of bounds")
+        return assertions[index]
     }
 
     /**
@@ -497,10 +502,14 @@ actual class Query @Throws(QueryError::class) actual constructor(
      *
      * This prevents the pattern from matching and removes most of the overhead
      * associated with the pattern. Currently, there is no way to undo this.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
      */
+    @Throws(IndexOutOfBoundsException::class)
     actual fun disablePattern(index: UInt) {
         if (index >= patternCount)
-            throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
+            throw IndexOutOfBoundsException("Pattern index $index is out of bounds")
         ts_query_disable_pattern(self, index)
     }
 
@@ -510,24 +519,39 @@ actual class Query @Throws(QueryError::class) actual constructor(
      * This prevents the capture from being returned in matches,
      * and also avoids most resource usage associated with recording
      * the capture. Currently, there is no way to undo this.
+     *
+     * @throws [NoSuchElementException] If the capture does not exist.
      */
+    @Throws(NoSuchElementException::class)
     actual fun disableCapture(name: String) {
         if (!captureNames.remove(name))
             throw NoSuchElementException("Capture @$name does not exist")
         ts_query_disable_capture(self, name, name.length.convert())
     }
 
-    /** Get the byte offset where the given pattern starts in the query's source. */
+    /**
+     * Get the byte offset where the given pattern starts in the query's source.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
+     */
+    @Throws(IndexOutOfBoundsException::class)
     actual fun startByteForPattern(index: UInt): UInt {
         if (index >= patternCount)
-            throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
+            throw IndexOutOfBoundsException("Pattern index $index is out of bounds")
         return ts_query_start_byte_for_pattern(self, index)
     }
 
-    /** Check if the pattern with the given index has a single root node. */
+    /**
+     * Check if the pattern with the given index has a single root node.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
+     */
+    @Throws(IndexOutOfBoundsException::class)
     actual fun isPatternRooted(index: UInt): Boolean {
         if (index >= patternCount)
-            throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
+            throw IndexOutOfBoundsException("Pattern index $index is out of bounds")
         return ts_query_is_pattern_rooted(self, index)
     }
 
@@ -538,22 +562,30 @@ actual class Query @Throws(QueryError::class) actual constructor(
      * repeating sequence of nodes, as specified by the grammar. Non-local
      * patterns disable certain optimizations that would otherwise be possible
      * when executing a query on a specific range of a syntax tree.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
      */
+    @Throws(IndexOutOfBoundsException::class)
     actual fun isPatternNonLocal(index: UInt): Boolean {
         if (index >= patternCount)
-            throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
+            throw IndexOutOfBoundsException("Pattern index $index is out of bounds")
         return ts_query_is_pattern_non_local(self, index)
     }
 
     /**
-     * Check if a pattern is guaranteed to match
-     * once a given byte offset is reached.
+     * Check if a pattern is guaranteed to match once a given byte offset is reached.
+     *
+     * @throws [IndexOutOfBoundsException] If the offset exceeds the source length.
      */
+    @Throws(IndexOutOfBoundsException::class)
     actual fun isPatternGuaranteedAtStep(offset: UInt): Boolean {
-        if (offset >= sourceLength)
+        if (offset >= source.length.toUInt())
             throw IndexOutOfBoundsException("Offset $offset exceeds EOF")
         return ts_query_is_pattern_guaranteed_at_step(self, offset)
     }
+
+    override fun toString() = "Query(language=$language, source=$source)"
 
     private fun TSQueryMatch.convert(
         tree: Tree,
@@ -562,32 +594,16 @@ actual class Query @Throws(QueryError::class) actual constructor(
         val index = pattern_index.convert<UInt>()
         val captures = (UShort.MIN_VALUE..<capture_count).map {
             val c = captures!![it.convert<Long>()]
-            val quantifier = ts_query_capture_quantifier_for_id(self, index, c.index)
             QueryCapture(
                 Node(c.node.readValue(), tree),
-                this@Query.captureNames[c.index],
-                when (quantifier) {
-                    TSQuantifier.TSQuantifierOne -> CaptureQuantifier.ONE
-                    TSQuantifier.TSQuantifierOneOrMore -> CaptureQuantifier.ONE_OR_MORE
-                    TSQuantifier.TSQuantifierZeroOrOne -> CaptureQuantifier.ZERO_OR_ONE
-                    TSQuantifier.TSQuantifierZeroOrMore -> CaptureQuantifier.ZERO_OR_MORE
-                    else -> error("Invalid capture quantifier at pattern index $index")
-                }
+                this@Query.captureNames[c.index]
             )
         }
         return QueryMatch(index, captures).takeIf { match ->
-            tree.text() == null || predicates[index]?.all {
+            tree.text() == null || predicates[index].all {
                 if (it !is QueryPredicate.Generic) it(match) else predicate(it, match)
-            } ?: true
+            }
         }
-    }
-
-    private inline fun <T> MutableMap<UInt, MutableList<T>>.put(i: UInt, value: T) {
-        getOrPut(i) { mutableListOf() }.add(value)
-    }
-
-    private inline fun <K, V> MutableMap<UInt, MutableMap<K, V>>.put(i: UInt, key: K, value: V) {
-        getOrPut(i) { mutableMapOf() }[key] = value
     }
 
     private inline operator fun <T> List<T>.get(index: UInt) = get(index.toInt())

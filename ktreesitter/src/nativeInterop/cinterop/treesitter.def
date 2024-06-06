@@ -1,6 +1,7 @@
 package = io.github.treesitter.ktreesitter.internal
 headers = tree_sitter/api.h alloc.h
 headerFilter = tree_sitter/api.h
+compilerOpts = -DTREE_SITTER_HIDE_SYMBOLS
 staticLibraries = libtree-sitter.a
 staticLibraries.mingw = tree-sitter.lib
 strictEnums = \
@@ -29,15 +30,6 @@ static inline bool kts_is_valid_identifier_char(int ch) {
 
 static inline bool kts_is_valid_predicate_char(int ch) {
     return isalnum(ch) || ch == '_' || ch == '-' || ch == '.' || ch == '?' || ch == '!';
-}
-
-static inline TSRange kts_node_range(TSNode node) {
-    return (TSRange){
-        .start_byte = ts_node_start_byte(node),
-        .end_byte = ts_node_end_byte(node),
-        .start_point = ts_node_start_point(node),
-        .end_point = ts_node_end_point(node)
-    };
 }
 
 static inline uintptr_t kts_node_id(TSNode node) {

@@ -20,7 +20,10 @@ actual class Parser actual constructor() {
 
     @Suppress("unused")
     @OptIn(ExperimentalNativeApi::class)
-    private val cleaner = createCleaner(self, ::ts_parser_delete)
+    private val cleaner = createCleaner(self) {
+        freeLogger(ts_parser_logger(it))
+        ts_parser_delete(it)
+    }
 
     /**
      * The language that the parser will use for parsing.
@@ -71,28 +74,25 @@ actual class Parser actual constructor() {
         set(value) = ts_parser_set_timeout_micros(self, value)
 
     /** The logger that the parser will use during parsing. */
+    @get:Deprecated("The logger can't be called directly.", level = DeprecationLevel.HIDDEN)
     actual var logger: LogFunction? = null
         set(value) {
-            if (field != null) {
-                val arena = Arena()
-                with(ts_parser_logger(self)) {
-                    interpretNullablePointed<TSLogger>(
-                        arena.alloc(size, align).rawPtr
-                    )?.payload?.asStableRef<TSLogger>()?.dispose()
-                }
-                arena.clear()
-            }
-            if (value != null) {
-                val logger = cValue<TSLogger> {
+            if (field != null)
+                freeLogger(ts_parser_logger(self))
+            val logger = cValue<TSLogger> {
+                if (value != null) {
                     payload = StableRef.create(value).asCPointer()
                     log = staticCFunction { payload, type, message ->
                         val callback = payload?.asStableRef<LogFunction>()?.get()
                         if (callback != null && message != null)
                             callback(LogType.entries[type.ordinal], message.toKString())
                     }
+                } else {
+                    payload = null
+                    log = null
                 }
-                ts_parser_set_logger(self, logger)
             }
+            ts_parser_set_logger(self, logger)
             field = value
         }
 
@@ -150,7 +150,6 @@ actual class Parser actual constructor() {
             read = staticCFunction { payload, index, point, bytes ->
                 val data = payload!!.asStableRef<ParsePayload>().get()
                 val result = data.callback(index, point.useContents { convert() })
-                if (result != null) data.value += result
                 bytes!!.pointed.value = result?.length?.convert() ?: 0U
                 result?.toString()?.cstr?.getPointer(data.memScope)
             }
@@ -172,12 +171,23 @@ actual class Parser actual constructor() {
      */
     actual fun reset() = ts_parser_reset(self)
 
+    override fun toString() = "Parser(language=$language)"
+
     /** The type of a log message. */
     actual enum class LogType { LEX, PARSE }
 
     private class ParsePayload(
         val memScope: AutofreeScope,
-        val callback: ParseCallback,
-        var value: String = ""
+        val callback: ParseCallback
     )
+
+    private companion object {
+        private inline fun freeLogger(logger: CValue<TSLogger>) {
+            val arena = Arena()
+            interpretNullablePointed<TSLogger>(
+                arena.alloc(logger.size, logger.align).rawPtr
+            )?.payload?.asStableRef<TSLogger>()?.dispose()
+            arena.clear()
+        }
+    }
 }

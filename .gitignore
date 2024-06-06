@@ -6,6 +6,8 @@ dependency-graph-reports/
 local.properties
 
 ### C ###
+.cache/
+.cmake/
 *.a
 *.lib
 *.so
@@ -19,6 +21,7 @@ out/
 *.iml
 *.ipr
 *.trace
+*.log
 
 !.idea/conventionalCommit.json
 !.idea/conventionalCommit.xml

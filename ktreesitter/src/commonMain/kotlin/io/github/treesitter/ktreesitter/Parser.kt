@@ -5,14 +5,14 @@ package io.github.treesitter.ktreesitter
  *
  * The function should return `null` to indicate the end of the document.
  */
-typealias ParseCallback = (UInt, Point) -> CharSequence?
+typealias ParseCallback = (byte: UInt, point: Point) -> CharSequence?
 
 /**
  * A function that logs parsing results.
  *
  * The first argument is the log type and the second argument is the message.
  */
-typealias LogFunction = (Parser.LogType, String) -> Unit
+typealias LogFunction = (type: Parser.LogType, message: String) -> Unit
 
 /**
  * A class that is used to produce a [syntax tree][Tree] from source code.
@@ -48,6 +48,7 @@ expect class Parser() {
     var timeoutMicros: ULong
 
     /** The logger that the parser will use during parsing. */
+    @get:Deprecated("The logger can't be called directly.", level = DeprecationLevel.HIDDEN)
     var logger: LogFunction?
 
     // TODO: add cancellationFlag

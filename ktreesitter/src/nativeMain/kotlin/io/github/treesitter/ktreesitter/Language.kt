@@ -11,6 +11,7 @@ import kotlinx.cinterop.*
  * an ABI [version] number that corresponds to the current CLI version.
  *
  * @constructor Create a new instance from the given language pointer.
+ * @param language A [CPointer] to a `TSLanguage`.
  * @throws [IllegalArgumentException] If the pointer is invalid or the [version] is incompatible.
  */
 @OptIn(ExperimentalForeignApi::class)
@@ -20,7 +21,7 @@ actual class Language @Throws(IllegalArgumentException::class) actual constructo
             ?: throw IllegalArgumentException("Invalid language: $language")
 
     /** The ABI version number for this language. */
-    actual val version = ts_language_version(self)
+    actual val version: UInt = ts_language_version(self)
 
     init {
         require(version in MIN_COMPATIBLE_LANGUAGE_VERSION..LANGUAGE_VERSION) {
@@ -30,20 +31,20 @@ actual class Language @Throws(IllegalArgumentException::class) actual constructo
     }
 
     /** The number of distinct node types in this language. */
-    actual val symbolCount = ts_language_symbol_count(self)
+    actual val symbolCount: UInt = ts_language_symbol_count(self)
 
     /** The number of valid states in this language. */
-    actual val stateCount = ts_language_state_count(self)
+    actual val stateCount: UInt = ts_language_state_count(self)
 
     /** The number of distinct field names in this language. */
-    actual val fieldCount = ts_language_field_count(self)
+    actual val fieldCount: UInt = ts_language_field_count(self)
 
     /** Get the node type for the given numerical ID. */
     actual fun symbolName(symbol: UShort) = ts_language_symbol_name(self, symbol)?.toKString()
 
     /** Get the numerical ID for the given node type. */
-    actual fun symbolForName(name: String, isNamed: Boolean): UShort? =
-        ts_language_symbol_for_name(self, name, name.length.convert(), isNamed).takeIf { it > 0U }
+    actual fun symbolForName(name: String, isNamed: Boolean): UShort =
+        ts_language_symbol_for_name(self, name, name.length.convert(), isNamed)
 
     /**
      * Check if the node for the given numerical ID is named
@@ -61,8 +62,8 @@ actual class Language @Throws(IllegalArgumentException::class) actual constructo
     actual fun fieldNameForId(id: UShort) = ts_language_field_name_for_id(self, id)?.toKString()
 
     /** Get the numerical ID for the given field name. */
-    actual fun fieldIdForName(name: String): UShort? =
-        ts_language_field_id_for_name(self, name, name.length.convert()).takeIf { it > 0U }
+    actual fun fieldIdForName(name: String): UShort =
+        ts_language_field_id_for_name(self, name, name.length.convert())
 
     /**
      * Get the next parse state.
@@ -99,18 +100,4 @@ actual class Language @Throws(IllegalArgumentException::class) actual constructo
     actual override fun hashCode() = self.hashCode()
 
     override fun toString() = "Language(id=${self.rawValue}, version=$version)"
-
-    actual companion object {
-        /**
-         * The latest ABI version that is supported by the current version of the library.
-         *
-         * The Tree-sitter library is generally backwards-compatible with languages
-         * generated using older CLI versions, but is not forwards-compatible.
-         */
-        actual val LANGUAGE_VERSION: UInt = TREE_SITTER_LANGUAGE_VERSION.convert()
-
-        /** The earliest ABI version that is supported by the current version of the library. */
-        actual val MIN_COMPATIBLE_LANGUAGE_VERSION: UInt =
-            TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION.convert()
-    }
 }
