@@ -1,5 +1,7 @@
 package io.github.treesitter.ktreesitter
 
+import java.io.File.createTempFile
+
 internal object NativeUtils {
     private const val LIB_NAME = "ktreesitter"
 
@@ -32,28 +34,25 @@ internal object NativeUtils {
             }
         }
         val arch = when {
-            "amd64" in archName || "x86_64" in archName -> "x86_64"
-            "aarch64" in archName -> "aarch64"
+            "amd64" in archName || "x86_64" in archName -> "x64"
+            "aarch64" in archName || "arm64" in archName -> "aarch64"
             else -> throw UnsupportedOperationException("Unsupported architecture: $archName")
         }
-        val libPath = "/lib/$os/$arch/$prefix$LIB_NAME.$ext"
-        return javaClass.classLoader.getResource(libPath)?.path
+        val libUrl = javaClass.getResource("/lib/$os/$arch/$prefix$LIB_NAME.$ext") ?: return null
+        return createTempFile("$prefix$LIB_NAME", ".$ext").apply {
+            writeBytes(libUrl.openStream().use { it.readAllBytes() })
+            deleteOnExit()
+        }.path
     }
 
     @JvmStatic
     @Throws(UnsatisfiedLinkError::class)
-    @Suppress("UnsafeDynamicallyLoadedCode")
     internal fun loadLibrary() {
         try {
             System.loadLibrary(LIB_NAME)
         } catch (ex: UnsatisfiedLinkError) {
-            try {
-                System.load(libPath())
-            } catch (_: UnsatisfiedLinkError) {
-                throw ex
-            } catch (_: NullPointerException) {
-                throw ex
-            }
+            @Suppress("UnsafeDynamicallyLoadedCode")
+            System.load(libPath() ?: throw ex)
         }
     }
 }

@@ -1,6 +1,6 @@
 package io.github.treesitter.ktreesitter.java
 
-import java.lang.NullPointerException
+import java.io.File.createTempFile
 
 actual object TreeSitterJava {
     private const val LIB_NAME = "ktreesitter-java"
@@ -9,14 +9,8 @@ actual object TreeSitterJava {
         try {
             System.loadLibrary(LIB_NAME)
         } catch (ex: UnsatisfiedLinkError) {
-            try {
-                @Suppress("UnsafeDynamicallyLoadedCode")
-                System.load(libPath())
-            } catch (_: UnsatisfiedLinkError) {
-                throw ex
-            } catch (_: NullPointerException) {
-                throw ex
-            }
+            @Suppress("UnsafeDynamicallyLoadedCode")
+            System.load(libPath() ?: throw ex)
         }
     }
 
@@ -51,12 +45,15 @@ actual object TreeSitterJava {
             }
         }
         val arch = when {
-            "amd64" in archName || "x86_64" in archName -> "x86_64"
-            "aarch64" in archName -> "aarch64"
+            "amd64" in archName || "x86_64" in archName -> "x64"
+            "aarch64" in archName || "arm64" in archName -> "aarch64"
             else -> throw UnsupportedOperationException("Unsupported architecture: $archName")
         }
-        val libPath = "/lib/$os/$arch/$prefix$LIB_NAME.$ext"
-        return javaClass.classLoader.getResource(libPath)?.path
+        val libUrl = javaClass.getResource("/lib/$os/$arch/$prefix$LIB_NAME.$ext") ?: return null
+        return createTempFile("$prefix$LIB_NAME", ".$ext").apply {
+            writeBytes(libUrl.openStream().use { it.readAllBytes() })
+            deleteOnExit()
+        }.path
     }
 
     @JvmStatic
