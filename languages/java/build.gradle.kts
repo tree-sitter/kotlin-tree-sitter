@@ -1,8 +1,12 @@
 import java.io.OutputStream.nullOutputStream
 import org.gradle.internal.os.OperatingSystem
+import org.gradle.kotlin.dsl.support.useToRun
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 import org.jetbrains.kotlin.konan.target.PlatformManager
+
+inline val File.unixPath: String
+    get() = if (!os.isWindows) path else path.replace("\\", "/")
 
 val os: OperatingSystem = OperatingSystem.current()
 val libsDir = layout.buildDirectory.get().dir("libs")
@@ -137,7 +141,7 @@ publishing {
     repositories {
         maven {
             name = "local"
-            url = uri(rootProject.layout.buildDirectory.dir("repo"))
+            url = uri(layout.buildDirectory.dir("repo"))
         }
     }
 }
@@ -155,44 +159,42 @@ signing {
 tasks.withType<CInteropProcess>().configureEach {
     if (name.startsWith("cinteropTest")) return@configureEach
 
-    val runKonan = File(konanHome.get()).resolve("bin/run_konan").path
-    val libFile = libsDir.dir(konanTarget.name).file(
-        konanTarget.family.staticPrefix +
-            "tree-sitter-$grammarName." +
-            konanTarget.family.staticSuffix
-    )
+    val runKonan = file(konanHome.get()).resolve("bin")
+        .resolve(if (os.isWindows) "run_konan.bat" else "run_konan").path
+    val libFile = libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a").asFile
     val objectFiles = grammarFiles.map {
-        grammarDir.resolve(it.nameWithoutExtension + ".o")
+        grammarDir.resolve(it.nameWithoutExtension + ".o").path
     }.toTypedArray()
     val loader = PlatformManager(konanHome.get(), false, konanDataDir.orNull).loader(konanTarget)
 
     doFirst {
         if (!File(loader.absoluteTargetToolchain).isDirectory) loader.downloadDependencies()
 
-        exec {
-            executable = runKonan
-            workingDir = grammarDir
-            standardOutput = nullOutputStream()
-            args(
-                "clang",
-                "clang",
-                konanTarget.name,
-                "--sysroot", loader.absoluteTargetSysRoot,
-                "-I", grammarDir.resolve("src"),
-                "-DTREE_SITTER_HIDE_SYMBOLS",
-                "-std=c11",
-                "-O2",
-                "-g",
-                "-c",
-                *grammarFiles
-            )
+        val argsFile = File.createTempFile("args", null)
+        argsFile.deleteOnExit()
+        argsFile.writer().useToRun {
+            write("-I" + grammarDir.resolve("src").unixPath + "\n")
+            write("-DTREE_SITTER_HIDE_SYMBOLS\n")
+            write("-fvisibility=hidden\n")
+            write("-std=c11\n")
+            write("-O2\n")
+            write("-g\n")
+            write("-c\n")
+            grammarFiles.forEach { write(it.unixPath + "\n") }
         }
 
         exec {
             executable = runKonan
             workingDir = grammarDir
             standardOutput = nullOutputStream()
-            args("llvm", "llvm-ar", "rcs", libFile, *objectFiles)
+            args("clang", "clang", konanTarget.name, "@" + argsFile.path)
+        }
+
+        exec {
+            executable = runKonan
+            workingDir = grammarDir
+            standardOutput = nullOutputStream()
+            args("llvm", "llvm-ar", "rcs", libFile.path, *objectFiles)
         }
     }
 

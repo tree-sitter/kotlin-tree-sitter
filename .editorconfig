@@ -22,7 +22,7 @@ max_line_length = off
 [*.{json,yml,toml,xml}]
 indent_size = 2
 
-[*.bat]
+[*.{bat,ps1}]
 end_of_line = crlf
 
 # noinspection EditorConfigKeyCorrectness

@@ -3,7 +3,6 @@ headers = tree_sitter/api.h alloc.h
 headerFilter = tree_sitter/api.h
 compilerOpts = -DTREE_SITTER_HIDE_SYMBOLS
 staticLibraries = libtree-sitter.a
-staticLibraries.mingw = tree-sitter.lib
 strictEnums = \
     TSLogType \
     TSQuantifier \
@@ -24,12 +23,15 @@ excludedFunctions = \
 
 ---
 
+#define _isalnum(ch) \
+    ((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9'))
+
 static inline bool kts_is_valid_identifier_char(int ch) {
-    return isalnum(ch) || ch == '_';
+    return _isalnum(ch) || ch == '_';
 }
 
 static inline bool kts_is_valid_predicate_char(int ch) {
-    return isalnum(ch) || ch == '_' || ch == '-' || ch == '.' || ch == '?' || ch == '!';
+    return _isalnum(ch) || ch == '_' || ch == '-' || ch == '.' || ch == '?' || ch == '!';
 }
 
 static inline uintptr_t kts_node_id(TSNode node) {

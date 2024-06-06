@@ -2,7 +2,7 @@
 kotlin-stdlib = "[1.9,2.0)"
 #noinspection GradleDependency
 android-gradle = {strictly = "8.2.0"}
-kotest = "5.9.0"
+kotest = "5.9.1"
 dokka = "1.9.20"
 
 [libraries.kotlin-stdlib]

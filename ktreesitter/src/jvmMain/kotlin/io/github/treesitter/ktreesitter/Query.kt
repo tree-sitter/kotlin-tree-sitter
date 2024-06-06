@@ -533,7 +533,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
         override fun run() = delete(query, cursor)
     }
 
-    @Suppress("ktlint:standard:property-naming", "ConstPropertyName")
+    @Suppress("ConstPropertyName")
     private companion object {
         private const val TSQueryPredicateStepTypeDone = 0
 

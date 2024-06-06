@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "**/*.kt"
+      - "**/*.kts"
+      - "**/jni/*"
+      - gradle/**
+  pull_request:
+    paths:
+      - "/*.kt"
+      - "**/*.kts"
+      - "**/jni/*"
+      - gradle/**
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.ref_name}}
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ${{matrix.os}}
+    name: >-
+      Test ${{matrix.platform}} platform
+      ${{matrix.lib_platform && format('({0}-{1})', matrix.lib_platform, matrix.lib_arch)}}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: JVM
+            targets: jvmTest
+            lib_platform: linux
+            lib_arch: x64
+          - os: windows-latest
+            platform: JVM
+            targets: jvmTest
+            lib_platform: windows
+            lib_arch: x64
+          - os: macos-latest
+            platform: JVM
+            targets: jvmTest
+            lib_platform: macos
+            lib_arch: aarch64
+          # - os: ubuntu-latest
+          #   platform: Android
+          #   targets: testDebugUnitTest
+          - os: ubuntu-latest
+            platform: Linux
+            targets: compileKotlinLinuxArm64 linuxX64Test
+          - os: windows-latest
+            platform: Windows
+            targets: mingwX64Test
+          - os: macos-latest
+            platform: macOS/iOS
+            targets: macosX64Test macosArm64Test iosSimulatorArm64Test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+          cache-dependency-path: |
+            gradle/libs.versions.toml
+            gradle/wrapper/gradle-wrapper.properties
+      - name: Set up cross compilation
+        run: sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
+        if: matrix.platform == 'Linux'
+      - name: Cache Kotlin/Native prebuilt
+        uses: actions/cache@v4
+        with:
+          path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
+          key: konan-${{runner.os}}-prebuilt-1.9
+      - name: Build JNI libraries
+        if: matrix.platform == 'JVM'
+        run: .github/scripts/build-jni.${{matrix.os == 'windows-latest' && 'ps1' || 'sh'}}
+        env:
+          CMAKE_INSTALL_LIBDIR: lib/${{matrix.lib_platform}}/${{matrix.lib_arch}}
+      - name: Cache Kotlin/Native dependencies
+        uses: actions/cache@v4
+        if: matrix.platform != 'JVM' && matrix.platform != 'Android'
+        with:
+          path: ${{runner.tool_cache}}/konan/dependencies
+          key: konan-${{runner.os}}-dependencies
+      - name: Run tests
+        run: ./gradlew --no-daemon ${{matrix.targets}}
+        env:
+          KONAN_DATA_DIR: ${{runner.tool_cache}}/konan
+      - name: Report test results
+        uses: mikepenz/action-junit-report@v4
+        if: matrix.platform == 'JVM' && !cancelled()
+        with:
+          annotate_only: true
+          detailed_summary: true
+          report_paths: ktreesitter/build/reports/xml/*

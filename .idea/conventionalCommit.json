@@ -33,6 +33,7 @@
     "android": {},
     "jvm": {},
     "native": {},
+    "jni": {},
     "languages": {}
   },
   "footerTypes": [
