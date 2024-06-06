@@ -75,8 +75,8 @@ void JNICALL language_check_version(JNIEnv *env, jobject this) {
         version > TREE_SITTER_LANGUAGE_VERSION) {
         const char *fmt = "Incompatible language version %u. Must be between %u and %u.";
         char buffer[70] = {0}; // length(fmt) + digits(UINT32_MAX)
-        sprintf(buffer, fmt, version, TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION,
-                TREE_SITTER_LANGUAGE_VERSION);
+        sprintf_s(buffer, 70, fmt, version, TREE_SITTER_MIN_COMPATIBLE_LANGUAGE_VERSION,
+                  TREE_SITTER_LANGUAGE_VERSION);
         THROW(IllegalArgumentException, (const char *)buffer);
     }
 }

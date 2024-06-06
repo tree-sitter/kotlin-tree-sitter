@@ -49,6 +49,10 @@
 #define UNREACHABLE() abort()
 #endif
 
+#ifndef _WIN32
+#define sprintf_s(buffer, size, format, ...) snprintf((buffer), (size), (format), __VA_ARGS__)
+#endif
+
 typedef struct {
     jfieldID InputEdit_newEndByte;
     jfieldID InputEdit_newEndPoint;
