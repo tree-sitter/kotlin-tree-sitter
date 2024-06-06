@@ -1,5 +1,6 @@
 import java.io.OutputStream.nullOutputStream
-import java.net.URL
+import java.net.URI
+import org.apache.commons.io.FilenameUtils.separatorsToUnix
 import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.dokka.base.DokkaBase
 import org.jetbrains.dokka.base.DokkaBaseConfiguration
@@ -8,6 +9,9 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 import org.jetbrains.kotlin.konan.target.PlatformManager
+
+inline val File.unixPath: String
+    get() = separatorsToUnix(path)
 
 val os: OperatingSystem = OperatingSystem.current()
 val libsDir = layout.buildDirectory.get().dir("libs")
@@ -177,7 +181,7 @@ publishing {
     repositories {
         maven {
             name = "local"
-            url = uri(rootProject.layout.buildDirectory.dir("repo"))
+            url = uri(layout.buildDirectory.dir("repo"))
         }
     }
 }
@@ -195,7 +199,8 @@ signing {
 tasks.dokkaHtml {
     val tmpDir = layout.buildDirectory.get().dir("tmp")
     val readme = rootDir.resolve("README.md")
-    val url = "https://github.com/tree-sitter/kotlin-tree-sitter/blob/master/ktreesitter"
+    val ref = System.getenv("GITHUB_SHA")?.subSequence(0, 7) ?: "master"
+    val url = "https://github.com/tree-sitter/kotlin-tree-sitter/blob/$ref/ktreesitter"
 
     inputs.file(readme)
 
@@ -215,7 +220,7 @@ tasks.dokkaHtml {
         externalDocumentationLink("https://kotlinlang.org/api/core/")
         sourceLink {
             localDirectory.set(projectDir)
-            remoteUrl.set(URL(url))
+            remoteUrl.set(URI.create(url).toURL())
         }
     }
 
@@ -242,10 +247,10 @@ tasks.withType<KotlinJvmCompile>().configureEach {
 tasks.withType<CInteropProcess>().configureEach {
     if (name.startsWith("cinteropTest")) return@configureEach
 
-    val runKonan = File(konanHome.get()).resolve("bin/run_konan").path
+    val runKonan = File(konanHome.get()).resolve("bin/run_konan").unixPath
     val libFile = libsDir.dir(konanTarget.name).file(
         "${konanTarget.family.staticPrefix}tree-sitter.${konanTarget.family.staticSuffix}"
-    )
+    ).asFile
     val objectFile = treesitterDir.resolve("lib.o")
     val loader = PlatformManager(konanHome.get(), false, konanDataDir.orNull).loader(konanTarget)
 
@@ -260,16 +265,16 @@ tasks.withType<CInteropProcess>().configureEach {
                 "clang",
                 "clang",
                 konanTarget.name,
-                "--sysroot", loader.absoluteTargetSysRoot,
-                "-I", treesitterDir.resolve("lib/src"),
-                "-I", treesitterDir.resolve("lib/include"),
+                "--sysroot", separatorsToUnix(loader.absoluteTargetSysRoot),
+                "-I", treesitterDir.resolve("lib/src").unixPath,
+                "-I", treesitterDir.resolve("lib/include").unixPath,
                 "-DTREE_SITTER_HIDE_SYMBOLS",
                 "-fvisibility=hidden",
                 "-std=c11",
                 "-O2",
                 "-g",
                 "-c",
-                treesitterDir.resolve("lib/src/lib.c")
+                treesitterDir.resolve("lib/src/lib.c").unixPath
             )
         }
 
@@ -277,7 +282,7 @@ tasks.withType<CInteropProcess>().configureEach {
             executable = runKonan
             workingDir = treesitterDir
             standardOutput = nullOutputStream()
-            args("llvm", "llvm-ar", "rcs", libFile, objectFile)
+            args("llvm", "llvm-ar", "rcs", libFile.unixPath, objectFile.unixPath)
         }
     }
 
@@ -290,14 +295,6 @@ tasks.getByName<Test>("jvmTest") {
         required.set(true)
         outputLocation.set(layout.buildDirectory.dir("reports/xml"))
     }
-    val libraryPath = buildString {
-        append(file(".cmake/build").path)
-        val sep = if (os.isWindows) ";" else ":"
-        rootProject.project("languages").subprojects.joinTo(this, sep, sep) {
-            it.file(".cmake/build").path
-        }
-    }
-    systemProperty("java.library.path", libraryPath)
     systemProperty("gradle.build.dir", layout.buildDirectory.get().asFile.path)
 }
 

@@ -13,7 +13,7 @@ if(MSVC)
     add_compile_options(/W3 /wd4244)
 else(MSVC)
     set(CMAKE_C_VISIBILITY_PRESET hidden)
-    add_compile_options(-Wall -Wextra
+    add_compile_options(-Wall -Wextra -Wconversion
                         -Wno-unused-parameter
                         -Wno-cast-function-type
                         -Werror=incompatible-pointer-types
@@ -38,3 +38,5 @@ add_library(ktreesitter SHARED
             ../tree-sitter/lib/src/lib.c)
 
 set_target_properties(ktreesitter PROPERTIES DEFINE_SYMBOL "")
+
+install(TARGETS ktreesitter ARCHIVE EXCLUDE_FROM_ALL)

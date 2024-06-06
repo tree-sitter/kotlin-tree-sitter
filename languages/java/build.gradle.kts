@@ -1,8 +1,12 @@
 import java.io.OutputStream.nullOutputStream
+import org.apache.commons.io.FilenameUtils.separatorsToUnix
 import org.gradle.internal.os.OperatingSystem
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 import org.jetbrains.kotlin.konan.target.PlatformManager
+
+inline val File.unixPath: String
+    get() = separatorsToUnix(path)
 
 val os: OperatingSystem = OperatingSystem.current()
 val libsDir = layout.buildDirectory.get().dir("libs")
@@ -137,7 +141,7 @@ publishing {
     repositories {
         maven {
             name = "local"
-            url = uri(rootProject.layout.buildDirectory.dir("repo"))
+            url = uri(layout.buildDirectory.dir("repo"))
         }
     }
 }
@@ -155,14 +159,14 @@ signing {
 tasks.withType<CInteropProcess>().configureEach {
     if (name.startsWith("cinteropTest")) return@configureEach
 
-    val runKonan = File(konanHome.get()).resolve("bin/run_konan").path
+    val runKonan = file(konanHome.get()).resolve("bin/run_konan").unixPath
     val libFile = libsDir.dir(konanTarget.name).file(
         konanTarget.family.staticPrefix +
             "tree-sitter-$grammarName." +
             konanTarget.family.staticSuffix
-    )
+    ).asFile
     val objectFiles = grammarFiles.map {
-        grammarDir.resolve(it.nameWithoutExtension + ".o")
+        grammarDir.resolve(it.nameWithoutExtension + ".o").unixPath
     }.toTypedArray()
     val loader = PlatformManager(konanHome.get(), false, konanDataDir.orNull).loader(konanTarget)
 
@@ -177,14 +181,14 @@ tasks.withType<CInteropProcess>().configureEach {
                 "clang",
                 "clang",
                 konanTarget.name,
-                "--sysroot", loader.absoluteTargetSysRoot,
-                "-I", grammarDir.resolve("src"),
+                "--sysroot", separatorsToUnix(loader.absoluteTargetSysRoot),
+                "-I", grammarDir.resolve("src").unixPath,
                 "-DTREE_SITTER_HIDE_SYMBOLS",
                 "-std=c11",
                 "-O2",
                 "-g",
                 "-c",
-                *grammarFiles
+                *grammarFiles.map { it.unixPath }.toTypedArray()
             )
         }
 
@@ -192,7 +196,7 @@ tasks.withType<CInteropProcess>().configureEach {
             executable = runKonan
             workingDir = grammarDir
             standardOutput = nullOutputStream()
-            args("llvm", "llvm-ar", "rcs", libFile, *objectFiles)
+            args("llvm", "llvm-ar", "rcs", libFile.unixPath, *objectFiles)
         }
     }
 

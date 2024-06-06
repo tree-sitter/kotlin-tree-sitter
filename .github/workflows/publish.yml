@@ -1,0 +1,203 @@
+name: Publish
+
+on:
+  push:
+    tags: ["*"]
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{github.workflow}}-${{github.ref_name}}
+
+jobs:
+  build-libs:
+    runs-on: ${{matrix.os}}
+    name: Build ${{matrix.platform}}-${{matrix.arch}}) library
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            lib: libktreesitter.so
+            cmake_args: >-
+              -DCMAKE_BUILD_TYPE=RelWithDebugInfo
+          - os: ubuntu-latest
+            platform: linux
+            arch: aarch64
+            lib: libktreesitter.so
+            cmake_args: >-
+              -DCMAKE_BUILD_TYPE=RelWithDebugInfo
+              -DCMAKE_SYSTEM_PROCESSOR=aarch64
+              -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc
+              -DCMAKE_FIND_ROOT_PATH=/usr/aarch64-linux-gnu
+          - os: windows-latest
+            platform: windows
+            arch: x64
+            lib: ktreesitter.dll
+          - os: macos-latest
+            platform: macos
+            arch: x64
+            lib: libktreesitter.dylib
+            cmake_args: >-
+              -DCMAKE_BUILD_TYPE=RelWithDebugInfo
+              -DCMAKE_OSX_ARCHITECTURES=x86_64
+          - os: macos-latest
+            platform: macos
+            arch: aarch64
+            lib: libktreesitter.dylib
+            cmake_args: >-
+              -DCMAKE_OSX_ARCHITECTURES=arm64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          architecture: ${{matrix.arch}}
+      - name: Set up cross compilation
+        run: sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
+        if: runner.os == 'Linux' && matrix.arch == 'aarch64'
+      - name: Configure CMake
+        working-directory: ktreesitter
+        run: >-
+          cmake -B .cmake/build ${{matrix.cmake_args}}
+          -DCMAKE_INSTALL_LIBDIR=lib/${{matrix.platform}}/${{matrix.arch}}
+          -DCMAKE_INSTALL_BINDIR=lib/${{matrix.platform}}/${{matrix.arch}}
+      - name: Build JNI library
+        working-directory: ktreesitter
+        run: |-
+          cmake --build .cmake/build --config Release
+          cmake --install .cmake/build --prefix --config Release .cmake/build
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktreesitter-lib-${{matrix.platform}}-${{matrix.arch}}
+          path: ktreesitter/.cmake/build/lib/**
+          retention-days: 2
+  build-jars:
+    runs-on: ${{matrix.os}}
+    name: Build ${{matrix.platform}} packages
+    needs: [build-libs]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: common
+            targets: :ktreesitter:publishKotlinMultiplatformPublicationToLocalRepository
+          - os: ubuntu-latest
+            platform: JVM
+            targets: :ktreesitter:publishJvmPublicationToLocalRepository
+          # - os: ubuntu-latest
+          #  platform: Android
+          #  targets: :ktreesitter:publishAndroidReleasePublicationToLocalRepository
+          - os: ubuntu-latest
+            platform: Linux
+            targets: >-
+              :ktreesitter:publishLinuxX64PublicationToLocalRepository
+              :ktreesitter:publishLinuxArm64PublicationToLocalRepository
+          - os: windows-latest
+            platform: Windows
+            targets: :ktreesitter:publishMingwX64PublicationToLocalRepository
+          - os: macos-latest
+            platform: macOS/iOS
+            targets: >-
+              :ktreesitter:publishMacosX64PublicationToLocalRepository
+              :ktreesitter:publishMacosArm64PublicationToLocalRepository
+              :ktreesitter:publishIosArm64PublicationToLocalRepository
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+          cache-dependency-path: |
+            gradle/libs.versions.toml
+            gradle/wrapper/gradle-wrapper.properties
+      - name: Set up cross compilation
+        run: sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
+        if: matrix.platform == 'Linux' || matrix.platform == 'common'
+      - name: Restore Kotlin/Native prebuilt
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
+          key: konan-${{runner.os}}-prebuilt-1.9
+      - name: Restore Kotlin/Native dependencies
+        uses: actions/cache/restore@v4
+        if: matrix.platform != 'JVM' && matrix.platform != 'Android'
+        with:
+          path: ${{runner.tool_cache}}/konan/dependencies
+          key: konan-${{runner.os}}-dependencies
+      - name: Download library artifacts
+        uses: actions/download-artifact@v4
+        if: matrix.platform == 'JVM'
+        with:
+          path: ktreesitter/src/jvmMain/resources/lib
+          pattern: ktreesitter-lib-*
+          merge-multiple: true
+      - name: Build packages
+        shell: bash
+        run: ./gradlew --no-daemon ${{matrix.targets}}
+        env:
+          SIGNING_KEY: ${{secrets.SIGNING_KEY}}
+          SIGNING_PASSWORD: ${{secrets.SIGNING_PASSWORD}}
+          KONAN_DATA_DIR: ${{runner.tool_cache}}/konan
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktreesitter-${{matrix.platform == 'macOS/iOS' && 'macOS-iOS' || matrix.platform}}
+          path: |
+            ktreesitter/build/repo/**
+            !ktreesitter/build/repo/**/maven-metadata.*
+          retention-days: 2
+  publish:
+    runs-on: ubuntu-latest
+    name: Publish packages on Maven Central
+    needs: [build-jars]
+    permissions:
+      contents: write
+    environment:
+      name: sonatype
+      url: https://central.sonatype.com/artifact/io.github.treesitter/ktreesitter
+    env:
+      SONATYPE_API: https://central.sonatype.com/api/v1/publisher
+      SONATYPE_AUTH: "Authorization: Bearer ${{secrets.SONATYPE_TOKEN}}"
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ktreesitter
+          pattern: ktreesitter-*
+          merge-multiple: true
+      - name: Upload bundle
+        run: |-
+          url="$SONATYPE_API/upload?name=ktreesitter-${GITHUB_REF_NAME}.zip&publishingType=USER_MANAGED"
+          (cd ktreesitter && zip -qr ../ktreesitter.zip *)
+          printf >> "$GITHUB_ENV" 'DEPLOYMENT_ID=%s\n' $(curl -Ssf -Fbundle=@ktreesitter.zip -H "$SONATYPE_AUTH" "$url")
+      - name: Verify status
+        timeout-minutes: 5
+        run: |-
+          url="$SONATYPE_API/status?id=$DEPLOYMENT_ID"
+          while [[ ${state:=PENDING} == PENDING ]] || [[ $state == VALIDATING ]]; do
+            state=$(curl -Ssf -XPOST -H "$SONATYPE_AUTH" "$url"  | jq -r .deploymentState)
+          done
+          if [[ $state == FAILED ]]; then
+            printf '::error title=Publication failed::Check https://central.sonatype.com/publishing/deployments\n'
+            exit 1
+          fi
+      - name: Publish deployment
+        run: curl -fi -XPOST -H "$SONATYPE_AUTH" "$SONATYPE_API/deployment/$DEPLOYMENT_ID"
+      - name: Create release
+        run: gh release create $GITHUB_REF_NAME --generate-notes
+        env:
+          GH_TOKEN: ${{github.token}}

@@ -28,3 +28,7 @@ add_library(ktreesitter-java SHARED
             tree-sitter-java/src/parser.c
             # tree-sitter-java/src/scanner.c
             src/jni/binding.c)
+
+set_target_properties(ktreesitter-java PROPERTIES DEFINE_SYMBOL "")
+
+install(TARGETS ktreesitter-java ARCHIVE EXCLUDE_FROM_ALL)
