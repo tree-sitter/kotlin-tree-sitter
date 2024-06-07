@@ -1,5 +1,8 @@
 #include "utils.h"
 
+#define SET_INTERNAL_NODE(value)                                                                   \
+    (*env)->SetObjectField(env, this, global_field_cache.TreeCursor_internalNode, value);
+
 static inline TSTreeCursor *tree_cursor_alloc(TSTreeCursor cursor) {
     TSTreeCursor *cursor_ptr = (TSTreeCursor *)malloc(sizeof(TSTreeCursor));
     cursor_ptr->id = cursor.id;
@@ -34,7 +37,9 @@ jobject JNICALL tree_cursor_get_current_node(JNIEnv *env, jobject this) {
     TSTreeCursor *self = GET_POINTER(TSTreeCursor, this, TreeCursor_self);
     jobject tree = GET_FIELD(Object, this, TreeCursor_tree);
     TSNode ts_node = ts_tree_cursor_current_node(self);
-    return marshal_node(env, ts_node, tree);
+    node = marshal_node(env, ts_node, tree);
+    SET_INTERNAL_NODE(node);
+    return node;
 }
 
 jint JNICALL tree_cursor_get_current_depth(JNIEnv *env, jobject this) {
@@ -62,42 +67,60 @@ void JNICALL tree_cursor_reset__node(JNIEnv *env, jobject this, jobject node) {
     TSTreeCursor *self = GET_POINTER(TSTreeCursor, this, TreeCursor_self);
     TSNode ts_node = unmarshal_node(env, node);
     ts_tree_cursor_reset(self, ts_node);
+    SET_INTERNAL_NODE(NULL);
 }
 
 void JNICALL tree_cursor_reset__cursor(JNIEnv *env, jobject this, jobject cursor) {
     TSTreeCursor *self = GET_POINTER(TSTreeCursor, this, TreeCursor_self);
     TSTreeCursor *other = GET_POINTER(TSTreeCursor, cursor, TreeCursor_self);
     ts_tree_cursor_reset_to(self, other);
+    SET_INTERNAL_NODE(NULL);
 }
 
 jboolean JNICALL tree_cursor_goto_first_child(JNIEnv *env, jobject this) {
     TSTreeCursor *self = GET_POINTER(TSTreeCursor, this, TreeCursor_self);
-    return (jboolean)ts_tree_cursor_goto_first_child(self);
+    bool result = ts_tree_cursor_goto_first_child(self);
+    if (result)
+        SET_INTERNAL_NODE(NULL);
+    return (jboolean)result;
 }
 
 jboolean JNICALL tree_cursor_goto_last_child(JNIEnv *env, jobject this) {
     TSTreeCursor *self = GET_POINTER(TSTreeCursor, this, TreeCursor_self);
-    return (jboolean)ts_tree_cursor_goto_last_child(self);
+    bool result = ts_tree_cursor_goto_last_child(self);
+    if (result)
+        SET_INTERNAL_NODE(NULL);
+    return (jboolean)result;
 }
 
 jboolean JNICALL tree_cursor_goto_parent(JNIEnv *env, jobject this) {
     TSTreeCursor *self = GET_POINTER(TSTreeCursor, this, TreeCursor_self);
-    return (jboolean)ts_tree_cursor_goto_parent(self);
+    bool result = ts_tree_cursor_goto_parent(self);
+    if (result)
+        SET_INTERNAL_NODE(NULL);
+    return (jboolean)result;
 }
 
 jboolean JNICALL tree_cursor_goto_next_sibling(JNIEnv *env, jobject this) {
     TSTreeCursor *self = GET_POINTER(TSTreeCursor, this, TreeCursor_self);
-    return (jboolean)ts_tree_cursor_goto_next_sibling(self);
+    bool result = ts_tree_cursor_goto_next_sibling(self);
+    if (result)
+        SET_INTERNAL_NODE(NULL);
+    return (jboolean)result;
 }
 
 jboolean JNICALL tree_cursor_goto_previous_sibling(JNIEnv *env, jobject this) {
     TSTreeCursor *self = GET_POINTER(TSTreeCursor, this, TreeCursor_self);
-    return (jboolean)ts_tree_cursor_goto_previous_sibling(self);
+    bool result = ts_tree_cursor_goto_previous_sibling(self);
+    if (result)
+        SET_INTERNAL_NODE(NULL);
+    return (jboolean)result;
 }
 
 void JNICALL tree_cursor_goto_descendant(JNIEnv *env, jobject this, jint index) {
     TSTreeCursor *self = GET_POINTER(TSTreeCursor, this, TreeCursor_self);
     ts_tree_cursor_goto_descendant(self, (uint32_t)index);
+    SET_INTERNAL_NODE(NULL);
 }
 
 jlong JNICALL tree_cursor_native_goto_first_child_for_byte(JNIEnv *env, jobject this, jint byte) {

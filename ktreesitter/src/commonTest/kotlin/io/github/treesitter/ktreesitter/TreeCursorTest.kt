@@ -43,7 +43,6 @@ class TreeCursorTest : FunSpec({
         copy.currentNode shouldBe cursor.currentNode
     }
 
-    /* FIXME: enable
     test("gotoFirstChild()") {
         cursor.gotoFirstChild() shouldBe true
         cursor.currentNode.type shouldBe "class_declaration"
@@ -82,5 +81,4 @@ class TreeCursorTest : FunSpec({
         cursor.gotoFirstChildForPoint(Point(0U, 7U)) shouldBe 1U
         cursor.currentFieldName shouldBe "name"
     }
-     */
 })

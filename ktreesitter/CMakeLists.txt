@@ -13,7 +13,7 @@ if(MSVC)
     add_compile_options(/W3 /wd4244)
 else(MSVC)
     set(CMAKE_C_VISIBILITY_PRESET hidden)
-    add_compile_options(-Wall -Wextra -Wconversion
+    add_compile_options(-Wall -Wextra
                         -Wno-unused-parameter
                         -Wno-cast-function-type
                         -Werror=incompatible-pointer-types

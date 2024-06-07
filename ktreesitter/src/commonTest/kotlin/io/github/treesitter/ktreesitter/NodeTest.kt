@@ -1,7 +1,9 @@
 package io.github.treesitter.ktreesitter
 
 import io.github.treesitter.ktreesitter.java.TreeSitterJava
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.inspectors.forSingle
 import io.kotest.matchers.*
 import io.kotest.matchers.collections.*
 import io.kotest.matchers.nulls.*
@@ -18,7 +20,6 @@ class NodeTest : FunSpec({
         rootNode.id shouldNotBe 0UL
     }
 
-    /* FIXME: enable
     test("symbol") {
         rootNode.symbol shouldNotBe UShort.MIN_VALUE
     }
@@ -221,5 +222,4 @@ class NodeTest : FunSpec({
     test("toString()") {
         rootNode.toString() shouldBe "Node(type=program, startByte=0, endByte=12)"
     }
-     */
 })

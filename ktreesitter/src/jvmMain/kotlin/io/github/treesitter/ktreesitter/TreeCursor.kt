@@ -127,8 +127,12 @@ actual class TreeCursor private constructor(
      * @return The index of the child node, or `null` if no such child was found.
      */
     @JvmName("gotoFirstChildForByte")
-    actual fun gotoFirstChildForByte(byte: UInt) =
-        nativeGotoFirstChildForByte(byte).takeIf { it >= 0 }?.toUInt()
+    actual fun gotoFirstChildForByte(byte: UInt): UInt? {
+        val result = nativeGotoFirstChildForByte(byte)
+        if (result == -1L) return null
+        internalNode = null
+        return result.toUInt()
+    }
 
     /**
      * Move the cursor to the first child of its current
@@ -137,8 +141,12 @@ actual class TreeCursor private constructor(
      * @return The index of the child node, or `null` if no such child was found.
      */
     @JvmName("gotoFirstChildForPoint")
-    actual fun gotoFirstChildForPoint(point: Point) =
-        nativeGotoFirstChildForPoint(point).takeIf { it >= 0 }?.toUInt()
+    actual fun gotoFirstChildForPoint(point: Point): UInt? {
+        val result = nativeGotoFirstChildForPoint(point)
+        if (result == -1L) return null
+        internalNode = null
+        return result.toUInt()
+    }
 
     override fun toString() = "TreeCursor(tree=$tree)"
 

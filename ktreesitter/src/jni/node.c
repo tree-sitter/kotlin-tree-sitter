@@ -239,8 +239,8 @@ jobject JNICALL node_children_by_field_id(JNIEnv *env, jobject this, jshort id) 
             jobject node_obj = marshal_node(env, ts_node, tree);
             CALL_METHOD(Boolean, children, ArrayList_add, node_obj);
             (*env)->DeleteLocalRef(env, node_obj);
-            ok = ts_tree_cursor_goto_next_sibling(&cursor);
         }
+        ok = ts_tree_cursor_goto_next_sibling(&cursor);
     }
     ts_tree_cursor_delete(&cursor);
     return children;
