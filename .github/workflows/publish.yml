@@ -93,9 +93,9 @@ jobs:
           - os: ubuntu-latest
             platform: JVM
             targets: :ktreesitter:publishJvmPublicationToLocalRepository
-          # - os: ubuntu-latest
-          #  platform: Android
-          #  targets: :ktreesitter:publishAndroidReleasePublicationToLocalRepository
+          - os: ubuntu-latest
+            platform: Android
+            targets: :ktreesitter:publishAndroidReleasePublicationToLocalRepository
           - os: ubuntu-latest
             platform: Linux
             targets: >-

@@ -49,7 +49,7 @@ jobs:
             lib_arch: aarch64
           # - os: ubuntu-latest
           #   platform: Android
-          #   targets: testDebugUnitTest
+          #   targets: connectedDebugAndroidTest
           - os: ubuntu-latest
             platform: Linux
             targets: compileKotlinLinuxArm64 linuxX64Test

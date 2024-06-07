@@ -35,7 +35,7 @@ jobject JNICALL tree_changed_ranges(JNIEnv *env, jobject this, jobject new_tree)
     jobject ranges = NEW_OBJECT(ArrayList, (jint)length);
     for (uint32_t i = 0; i < length; ++i) {
         jobject range_obj = marshal_range(env, ts_range++);
-        CALL_METHOD(Object, ranges, ArrayList_add, range_obj);
+        CALL_METHOD(Boolean, ranges, ArrayList_add, range_obj);
         (*env)->DeleteLocalRef(env, range_obj);
     }
     free(ts_ranges);
@@ -52,7 +52,7 @@ jobject JNICALL tree_native_included_ranges(JNIEnv *env, jobject this) {
     jobject ranges = NEW_OBJECT(ArrayList, (jint)length);
     for (uint32_t i = 0; i < length; ++i) {
         jobject range_obj = marshal_range(env, ts_ranges + i);
-        CALL_METHOD(Object, ranges, ArrayList_add, range_obj);
+        CALL_METHOD(Boolean, ranges, ArrayList_add, range_obj);
         (*env)->DeleteLocalRef(env, range_obj);
     }
     free(ts_ranges);

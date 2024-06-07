@@ -25,6 +25,14 @@ version.ref = "kotest"
 module = "io.kotest:kotest-extensions-junitxml"
 version.ref = "kotest"
 
+[libraries.kotest-android-runner]
+module = "br.com.colman:kotest-runner-android"
+version = "1.1.1"
+
+[libraries.androidx-test-runner]
+module = "androidx.test:runner"
+version = "1.5.2"
+
 [libraries.dokka-base]
 module = "org.jetbrains.dokka:dokka-base"
 version.ref = "dokka"
@@ -53,4 +61,8 @@ kotest-core = [
 kotest-junit = [
   "kotest-junit-runner",
   "kotest-junit-reporter",
+]
+kotest-android = [
+  "kotest-android-runner",
+  "androidx-test-runner",
 ]

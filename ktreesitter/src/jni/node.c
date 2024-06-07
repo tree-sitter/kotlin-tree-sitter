@@ -158,7 +158,7 @@ jobject JNICALL node_get_children(JNIEnv *env, jobject this) {
     for (uint32_t i = 0; i < count; ++i) {
         TSNode ts_node = ts_tree_cursor_current_node(&cursor);
         jobject node_obj = marshal_node(env, ts_node, tree);
-        CALL_METHOD(Object, children, ArrayList_add, node_obj);
+        CALL_METHOD(Boolean, children, ArrayList_add, node_obj);
         (*env)->DeleteLocalRef(env, node_obj);
         ts_tree_cursor_goto_next_sibling(&cursor);
     }

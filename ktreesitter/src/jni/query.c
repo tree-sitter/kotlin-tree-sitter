@@ -257,7 +257,7 @@ jobject query_predicates_for_pattern(JNIEnv *env, jobject this, jint index) {
         const jint values[2] = {(jint)steps[i].value_id, (jint)steps[i].type};
         jintArray predicate = (jintArray)(*env)->NewIntArray(env, 2);
         (*env)->SetIntArrayRegion(env, predicate, 0, 2, values);
-        CALL_METHOD(Object, predicates, ArrayList_add, predicate);
+        CALL_METHOD(Boolean, predicates, ArrayList_add, predicate);
         (*env)->DeleteLocalRef(env, predicate);
     }
     return predicates;
@@ -279,7 +279,7 @@ jobject query_next_match(JNIEnv *env, jobject this, jobject tree) {
             return NULL;
 
         jobject capture_obj = NEW_OBJECT(QueryCapture, node, name);
-        CALL_METHOD(Object, captures, ArrayList_add, capture_obj);
+        CALL_METHOD(Boolean, captures, ArrayList_add, capture_obj);
         (*env)->DeleteLocalRef(env, capture_obj);
         (*env)->DeleteLocalRef(env, node);
         (*env)->DeleteLocalRef(env, name);
@@ -306,7 +306,7 @@ jobject query_next_capture(JNIEnv *env, jobject this, jobject tree) {
             return NULL;
 
         jobject capture_obj = NEW_OBJECT(QueryCapture, node, name);
-        CALL_METHOD(Object, captures, ArrayList_add, capture_obj);
+        CALL_METHOD(Boolean, captures, ArrayList_add, capture_obj);
         (*env)->DeleteLocalRef(env, capture_obj);
         (*env)->DeleteLocalRef(env, node);
         (*env)->DeleteLocalRef(env, name);

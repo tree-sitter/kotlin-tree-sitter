@@ -98,9 +98,20 @@ kotlin {
             }
         }
 
+        /*
         getByName("androidUnitTest") {
             dependencies {
                 implementation(libs.kotest.junit.runner)
+            }
+        }
+         */
+        getByName("androidInstrumentedTest") {
+            dependencies {
+                implementation(libs.bundles.kotest.core)
+                implementation(libs.bundles.kotest.android)
+                rootProject.project("languages").subprojects.forEach {
+                    implementation(project(":languages:${it.name}"))
+                }
             }
         }
     }
@@ -117,6 +128,7 @@ android {
             //noinspection ChromeOsAbiSupport
             abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
         }
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     externalNativeBuild {
         cmake {
@@ -131,6 +143,15 @@ android {
     }
     testOptions.unitTests.all {
         it.useJUnitPlatform()
+    }
+    packaging.resources {
+        excludes += setOf(
+            "META-INF/AL2.0",
+            "META-INF/LGPL2.1",
+            "META-INF/licenses/ASM",
+            "win32-x86-64/attach_hotspot_windows.dll",
+            "win32-x86/attach_hotspot_windows.dll"
+        )
     }
     buildFeatures {
         resValues = false
@@ -301,23 +322,4 @@ tasks.getByName<Test>("jvmTest") {
 
 tasks.withType<AbstractPublishToMaven>().configureEach {
     mustRunAfter(tasks.withType<Sign>())
-}
-
-gradle.taskGraph.whenReady {
-    tasks.getByName<Test>("testDebugUnitTest") {
-        val buildTasks = rootProject.subprojects.mapNotNull {
-            it.tasks.findByName("buildCMakeDebug[x86_64]")
-        }
-        val sep = if (os.isWindows) ";" else ":"
-        val path = buildTasks.joinToString(sep) {
-            it.outputs.files.singleFile.path
-        }
-        systemProperty("java.library.path", path)
-        val toolchain = android.ndkDirectory.resolve(
-            "toolchains/llvm/prebuilt/linux-x86_64/sysroot" +
-                "/usr/lib/x86_64-linux-android/${android.compileSdk}"
-        )
-        assert(toolchain.isDirectory) { "$toolchain is not a directory" }
-        environment("LD_LIBRARY_PATH", toolchain.path)
-    }
 }
