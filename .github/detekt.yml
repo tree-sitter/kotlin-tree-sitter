@@ -26,5 +26,6 @@ style:
       - "3"
       - "10"
       - "16"
+      - "0x7F"
   ReturnCount:
     max: 3

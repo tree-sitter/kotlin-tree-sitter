@@ -49,7 +49,7 @@ jobs:
           path: ${{runner.tool_cache}}/konan/dependencies
           key: konan-${{runner.os}}-dependencies
       - name: Build documentation
-        run: ./gradlew --no-daemon :ktreesitter:dokkaHtml
+        run: ./gradlew --no-daemon generateFiles :ktreesitter:dokkaHtml
         env:
           KONAN_DATA_DIR: ${{runner.tool_cache}}/konan
       - name: Upload pages artifact

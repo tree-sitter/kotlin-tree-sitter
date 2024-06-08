@@ -146,7 +146,6 @@ jobs:
           pattern: ktreesitter-lib-*
           merge-multiple: true
       - name: Build packages
-        shell: bash
         run: ./gradlew --no-daemon ${{matrix.targets}}
         env:
           SIGNING_KEY: ${{secrets.SIGNING_KEY}}
@@ -160,7 +159,7 @@ jobs:
             ktreesitter/build/repo/**
             !ktreesitter/build/repo/**/maven-metadata.*
           retention-days: 2
-  publish:
+  publish-library:
     runs-on: ubuntu-latest
     name: Publish packages on Maven Central
     needs: [build-jars]
@@ -201,3 +200,28 @@ jobs:
         run: gh release create $GITHUB_REF_NAME --generate-notes
         env:
           GH_TOKEN: ${{github.token}}
+  publish-plugin:
+    runs-on: ubuntu-latest
+    name: Publish Gradle plugin
+    needs: [build-jars]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+          cache-dependency-path: |
+            gradle/libs.versions.toml
+            gradle/wrapper/gradle-wrapper.properties
+      - name: Publish plugin
+        run: >-
+          ./gradlew --no-daemon :ktreesitter-plugin:publishPlugins
+          -Pgradle.publish.key=$PUBLISH_KEY -Pgradle.publish.secret=$PUBLISH_SECRET
+        env:
+          PUBLISH_KEY: ${{secrets.GRADLE_PUBLISH_KEY}}
+          PUBLISH_SECRET: ${{secrets.GRADLE_PUBLISH_SECRET}}

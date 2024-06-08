@@ -98,13 +98,6 @@ kotlin {
             }
         }
 
-        /*
-        getByName("androidUnitTest") {
-            dependencies {
-                implementation(libs.kotest.junit.runner)
-            }
-        }
-         */
         getByName("androidInstrumentedTest") {
             dependencies {
                 implementation(libs.bundles.kotest.core)
@@ -152,9 +145,6 @@ android {
             "win32-x86-64/attach_hotspot_windows.dll",
             "win32-x86/attach_hotspot_windows.dll"
         )
-    }
-    buildFeatures {
-        resValues = false
     }
 }
 
@@ -268,7 +258,7 @@ tasks.withType<KotlinJvmCompile>().configureEach {
 tasks.withType<CInteropProcess>().configureEach {
     if (name.startsWith("cinteropTest")) return@configureEach
 
-    val runKonan = file(konanHome.get()).resolve("bin")
+    val runKonan = File(konanHome.get()).resolve("bin")
         .resolve(if (os.isWindows) "run_konan.bat" else "run_konan").path
     val libFile = libsDir.dir(konanTarget.name).file(
         "${konanTarget.family.staticPrefix}tree-sitter.${konanTarget.family.staticSuffix}"

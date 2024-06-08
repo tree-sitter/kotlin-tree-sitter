@@ -23,42 +23,80 @@ permissions:
   contents: write
 
 jobs:
+  generate:
+    runs-on: ubuntu-latest
+    name: Generate grammar files
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+          cache-dependency-path: |
+            gradle/libs.versions.toml
+            gradle/wrapper/gradle-wrapper.properties
+      - name: Cache Kotlin/Native prebuilt
+        uses: actions/cache@v4
+        with:
+          path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
+          key: konan-${{runner.os}}-prebuilt-1.9
+      - name: Generate files
+        run: ./gradlew --no-daemon generateGrammarFiles
+        env:
+          KONAN_DATA_DIR: ${{runner.tool_cache}}/konan
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-files
+          path: languages/*/build/generated/**
+          retention-days: 1
   test:
     runs-on: ${{matrix.os}}
     name: >-
       Test ${{matrix.platform}} platform
       ${{matrix.lib_platform && format('({0}-{1})', matrix.lib_platform, matrix.lib_arch)}}
+    needs: [generate]
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             platform: JVM
-            targets: jvmTest
+            targets: :ktreesitter:jvmTest
             lib_platform: linux
             lib_arch: x64
           - os: windows-latest
             platform: JVM
-            targets: jvmTest
+            targets: :ktreesitter:jvmTest
             lib_platform: windows
             lib_arch: x64
           - os: macos-latest
             platform: JVM
-            targets: jvmTest
+            targets: :ktreesitter:jvmTest
             lib_platform: macos
             lib_arch: aarch64
-          # - os: ubuntu-latest
-          #   platform: Android
-          #   targets: connectedDebugAndroidTest
+          - os: ubuntu-latest
+            platform: Android
+            targets: :ktreesitter:assembleDebug
           - os: ubuntu-latest
             platform: Linux
-            targets: compileKotlinLinuxArm64 linuxX64Test
+            targets: >-
+              :ktreesitter:compileKotlinLinuxArm64
+              :ktreesitter:linuxX64Test
           - os: windows-latest
             platform: Windows
-            targets: mingwX64Test
+            targets: :ktreesitter:mingwX64Test
           - os: macos-latest
             platform: macOS/iOS
-            targets: macosX64Test macosArm64Test iosSimulatorArm64Test
+            targets: >-
+              :ktreesitter:macosX64Test
+              :ktreesitter:macosArm64Test
+              :ktreesitter:iosSimulatorArm64Test
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -76,11 +114,16 @@ jobs:
       - name: Set up cross compilation
         run: sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
         if: matrix.platform == 'Linux'
-      - name: Cache Kotlin/Native prebuilt
-        uses: actions/cache@v4
+      - name: Restore Kotlin/Native prebuilt
+        uses: actions/cache/restore@v4
         with:
           path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
           key: konan-${{runner.os}}-prebuilt-1.9
+      - name: Download generated files
+        uses: actions/download-artifact@v4
+        with:
+          path: languages
+          name: generated-files
       - name: Build JNI libraries
         if: matrix.platform == 'JVM'
         run: .github/scripts/build-jni.${{matrix.os == 'windows-latest' && 'ps1' || 'sh'}}

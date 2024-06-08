@@ -11,11 +11,6 @@ inline val File.unixPath: String
 val os: OperatingSystem = OperatingSystem.current()
 val libsDir = layout.buildDirectory.get().dir("libs")
 val grammarDir = projectDir.resolve("tree-sitter-java")
-val grammarName = project.name
-val grammarFiles = arrayOf(
-    // grammarDir.resolve("src/scanner.c"),
-    grammarDir.resolve("src/parser.c")
-)
 
 version = grammarDir.resolve("Makefile").readLines()
     .first { it.startsWith("VERSION := ") }.removePrefix("VERSION := ")
@@ -25,7 +20,21 @@ plugins {
     signing
     alias(libs.plugins.kotlin.mpp)
     alias(libs.plugins.android.library)
+    id("io.github.tree-sitter.ktreesitter-plugin")
 }
+
+grammar {
+    baseDir = grammarDir
+    grammarName = project.name
+    className = "TreeSitterJava"
+    packageName = "io.github.treesitter.ktreesitter.java"
+    files = arrayOf(
+        // grammarDir.resolve("src/scanner.c"),
+        grammarDir.resolve("src/parser.c")
+    )
+}
+
+val generateTask = tasks.generateGrammarFiles.get()
 
 kotlin {
     jvm {}
@@ -50,9 +59,11 @@ kotlin {
         }
     }.forEach { target ->
         target.compilations.configureEach {
-            cinterops.create("parser") {
+            cinterops.create(grammar.interopName.get()) {
+                defFileProperty.set(generateTask.interopFile.asFile)
                 includeDirs.allHeaders(grammarDir.resolve("bindings/c"))
                 extraOpts("-libraryPath", libsDir.dir(konanTarget.name))
+                tasks.getByName(interopProcessingTaskName).mustRunAfter(generateTask)
             }
         }
     }
@@ -60,6 +71,11 @@ kotlin {
     jvmToolchain(17)
 
     sourceSets {
+        val generatedSrc = generateTask.generatedSrc.get()
+        configureEach {
+            kotlin.srcDir(generatedSrc.dir(name).dir("kotlin"))
+        }
+
         commonMain {
             @OptIn(ExperimentalKotlinGradlePluginApi::class)
             languageSettings {
@@ -72,24 +88,29 @@ kotlin {
                 implementation(libs.kotlin.stdlib)
             }
         }
+
+        jvmMain {
+            resources.srcDir(generatedSrc.dir(name).dir("resources"))
+        }
     }
 }
 
 android {
-    namespace = "io.github.treesitter.ktreesitter.$grammarName"
+    namespace = "io.github.treesitter.ktreesitter.${grammar.grammarName.get()}"
     compileSdk = (property("sdk.version.compile") as String).toInt()
     ndkVersion = property("ndk.version") as String
     defaultConfig {
         minSdk = (property("sdk.version.min") as String).toInt()
         ndk {
-            moduleName = "ktreesitter-java"
+            moduleName = grammar.libraryName.get()
             //noinspection ChromeOsAbiSupport
             abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
         }
+        resValue("string", "version", version as String)
     }
     externalNativeBuild {
         cmake {
-            path = file("CMakeLists.txt")
+            path = generateTask.cmakeListsFile.get().asFile
             buildStagingDirectory = file(".cmake")
             version = property("cmake.version") as String
         }
@@ -98,9 +119,54 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    buildFeatures {
-        resValues = false
+}
+
+tasks.withType<CInteropProcess>().configureEach {
+    if (name.startsWith("cinteropTest")) return@configureEach
+
+    val grammarFiles = grammar.files.get()
+    val grammarName = grammar.grammarName.get()
+    val runKonan = File(konanHome.get()).resolve("bin")
+        .resolve(if (os.isWindows) "run_konan.bat" else "run_konan").path
+    val libFile = libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a").asFile
+    val objectFiles = grammarFiles.map {
+        grammarDir.resolve(it.nameWithoutExtension + ".o").path
+    }.toTypedArray()
+    val loader = PlatformManager(konanHome.get(), false, konanDataDir.orNull).loader(konanTarget)
+
+    doFirst {
+        if (!File(loader.absoluteTargetToolchain).isDirectory) loader.downloadDependencies()
+
+        val argsFile = File.createTempFile("args", null)
+        argsFile.deleteOnExit()
+        argsFile.writer().useToRun {
+            write("-I" + grammarDir.resolve("src").unixPath + "\n")
+            write("-DTREE_SITTER_HIDE_SYMBOLS\n")
+            write("-fvisibility=hidden\n")
+            write("-std=c11\n")
+            write("-O2\n")
+            write("-g\n")
+            write("-c\n")
+            grammarFiles.forEach { write(it.unixPath + "\n") }
+        }
+
+        exec {
+            executable = runKonan
+            workingDir = grammarDir
+            standardOutput = nullOutputStream()
+            args("clang", "clang", konanTarget.name, "@" + argsFile.path)
+        }
+
+        exec {
+            executable = runKonan
+            workingDir = grammarDir
+            standardOutput = nullOutputStream()
+            args("llvm", "llvm-ar", "rcs", libFile.path, *objectFiles)
+        }
     }
+
+    inputs.files(*grammarFiles)
+    outputs.file(libFile)
 }
 
 tasks.create<Jar>("javadocJar") {
@@ -110,7 +176,8 @@ tasks.create<Jar>("javadocJar") {
 
 publishing {
     publications.withType(MavenPublication::class) {
-        artifactId = "ktreesitter-$grammarName"
+        val grammarName = grammar.grammarName.get()
+        artifactId = grammar.libraryName.get()
         artifact(tasks["javadocJar"])
         pom {
             name.set("KTreeSitter $grammarName")
@@ -154,52 +221,6 @@ signing {
         useInMemoryPgpKeys(key, password)
     }
     sign(publishing.publications)
-}
-
-tasks.withType<CInteropProcess>().configureEach {
-    if (name.startsWith("cinteropTest")) return@configureEach
-
-    val runKonan = file(konanHome.get()).resolve("bin")
-        .resolve(if (os.isWindows) "run_konan.bat" else "run_konan").path
-    val libFile = libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a").asFile
-    val objectFiles = grammarFiles.map {
-        grammarDir.resolve(it.nameWithoutExtension + ".o").path
-    }.toTypedArray()
-    val loader = PlatformManager(konanHome.get(), false, konanDataDir.orNull).loader(konanTarget)
-
-    doFirst {
-        if (!File(loader.absoluteTargetToolchain).isDirectory) loader.downloadDependencies()
-
-        val argsFile = File.createTempFile("args", null)
-        argsFile.deleteOnExit()
-        argsFile.writer().useToRun {
-            write("-I" + grammarDir.resolve("src").unixPath + "\n")
-            write("-DTREE_SITTER_HIDE_SYMBOLS\n")
-            write("-fvisibility=hidden\n")
-            write("-std=c11\n")
-            write("-O2\n")
-            write("-g\n")
-            write("-c\n")
-            grammarFiles.forEach { write(it.unixPath + "\n") }
-        }
-
-        exec {
-            executable = runKonan
-            workingDir = grammarDir
-            standardOutput = nullOutputStream()
-            args("clang", "clang", konanTarget.name, "@" + argsFile.path)
-        }
-
-        exec {
-            executable = runKonan
-            workingDir = grammarDir
-            standardOutput = nullOutputStream()
-            args("llvm", "llvm-ar", "rcs", libFile.path, *objectFiles)
-        }
-    }
-
-    inputs.files(*grammarFiles)
-    outputs.file(libFile)
 }
 
 tasks.withType<AbstractPublishToMaven>().configureEach {

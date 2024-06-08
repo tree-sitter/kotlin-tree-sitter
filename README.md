@@ -23,6 +23,6 @@ Kotlin bindings to the Tree-sitter parsing library
   - [ ] Swift
   - [ ] Markdown
   - [ ] CMake
-- [ ] Gradle plugin
+- [x] Gradle plugin
 - [ ] Package
 - [ ] DSL?

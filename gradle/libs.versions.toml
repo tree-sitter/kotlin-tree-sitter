@@ -53,6 +53,10 @@ version.ref = "kotest"
 id = "org.jetbrains.dokka"
 version.ref = "dokka"
 
+[plugins.gradle-publish]
+id = "com.gradle.plugin-publish"
+version = "1.2.1"
+
 [bundles]
 kotest-core = [
   "kotest-engine",

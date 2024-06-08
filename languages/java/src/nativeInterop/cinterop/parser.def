@@ -1,4 +1,0 @@
-package = io.github.treesitter.ktreesitter.java.internal
-headers = tree-sitter-java.h
-compilerOpts = -DTREE_SITTER_HIDE_SYMBOLS
-staticLibraries = libtree-sitter-java.a

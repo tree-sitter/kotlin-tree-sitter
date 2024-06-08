@@ -1,6 +1,7 @@
 rootProject.name = "ktreesitter"
 
 pluginManagement {
+    includeBuild("ktreesitter-plugin")
     repositories {
         google()
         mavenCentral()
