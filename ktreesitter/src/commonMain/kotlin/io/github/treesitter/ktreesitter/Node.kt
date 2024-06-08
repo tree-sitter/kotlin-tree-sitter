@@ -178,6 +178,9 @@ expect class Node {
     @Throws(IndexOutOfBoundsException::class)
     fun fieldNameForChild(index: UInt): String?
 
+    /** Get the child of the node that contains the given descendant, if any. */
+    fun childContainingDescendant(descendant: Node): Node?
+
     /**
      * Get the smallest node within this node
      * that spans the given byte range, if any.

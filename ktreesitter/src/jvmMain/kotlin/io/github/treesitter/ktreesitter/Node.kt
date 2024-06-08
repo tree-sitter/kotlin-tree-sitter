@@ -234,6 +234,9 @@ actual class Node internal constructor(
     @Throws(IndexOutOfBoundsException::class)
     actual external fun fieldNameForChild(index: UInt): String?
 
+    /** Get the child of the node that contains the given descendant, if any. */
+    actual external fun childContainingDescendant(descendant: Node): Node?
+
     /**
      * Get the smallest node within this node
      * that spans the given byte range, if any.

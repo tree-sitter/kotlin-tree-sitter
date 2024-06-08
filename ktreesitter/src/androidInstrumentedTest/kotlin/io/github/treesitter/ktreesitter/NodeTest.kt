@@ -173,6 +173,12 @@ class NodeTest : FunSpec({
         rootNode.child(0U)!!.fieldNameForChild(2U) shouldBe "body"
     }
 
+    test("childContainingDescendant()") {
+        val descendant = rootNode.child(0U)!!.child(0U)!!
+        val child = rootNode.childContainingDescendant(descendant)
+        child?.type shouldBe "class_declaration"
+    }
+
     test("descendant()") {
         rootNode.descendant(0U, 5U)?.type shouldBe "class"
         rootNode.descendant(Point(0U, 10U), Point(0U, 12U))?.type shouldBe "class_body"

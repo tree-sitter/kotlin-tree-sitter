@@ -255,6 +255,10 @@ actual class Node internal constructor(
         throw IndexOutOfBoundsException("Child index $index is out of bounds")
     }
 
+    /** Get the child of the node that contains the given descendant, if any. */
+    actual fun childContainingDescendant(descendant: Node) =
+        ts_node_child_containing_descendant(self, descendant.self).convert(tree)
+
     /**
      * Get the smallest node within this node
      * that spans the given byte range, if any.
