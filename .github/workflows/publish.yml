@@ -11,7 +11,7 @@ concurrency:
 jobs:
   build-libs:
     runs-on: ${{matrix.os}}
-    name: Build ${{matrix.platform}}-${{matrix.arch}}) library
+    name: Build ${{matrix.platform}}-${{matrix.arch}} library
     strategy:
       fail-fast: false
       matrix:
@@ -72,7 +72,7 @@ jobs:
         working-directory: ktreesitter
         run: |-
           cmake --build .cmake/build --config Release
-          cmake --install .cmake/build --prefix --config Release .cmake/build
+          cmake --install .cmake/build --config Release --prefix .cmake/build
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -89,24 +89,32 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: common
-            targets: :ktreesitter:publishKotlinMultiplatformPublicationToLocalRepository
+            targets: >-
+              generateGrammarFiles
+              :ktreesitter:publishKotlinMultiplatformPublicationToLocalRepository
           - os: ubuntu-latest
             platform: JVM
-            targets: :ktreesitter:publishJvmPublicationToLocalRepository
+            targets: >-
+              :ktreesitter:publishJvmPublicationToLocalRepository
           - os: ubuntu-latest
             platform: Android
-            targets: :ktreesitter:publishAndroidReleasePublicationToLocalRepository
+            targets: >-
+              :ktreesitter:publishAndroidReleasePublicationToLocalRepository
           - os: ubuntu-latest
             platform: Linux
             targets: >-
+              generateGrammarFiles
               :ktreesitter:publishLinuxX64PublicationToLocalRepository
               :ktreesitter:publishLinuxArm64PublicationToLocalRepository
           - os: windows-latest
             platform: Windows
-            targets: :ktreesitter:publishMingwX64PublicationToLocalRepository
+            targets: >-
+              generateGrammarFiles
+              :ktreesitter:publishMingwX64PublicationToLocalRepository
           - os: macos-latest
             platform: macOS/iOS
             targets: >-
+              generateGrammarFiles
               :ktreesitter:publishMacosX64PublicationToLocalRepository
               :ktreesitter:publishMacosArm64PublicationToLocalRepository
               :ktreesitter:publishIosArm64PublicationToLocalRepository
@@ -154,7 +162,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ktreesitter-${{matrix.platform == 'macOS/iOS' && 'macOS-iOS' || matrix.platform}}
+          name: ktreesitter-jars-${{matrix.platform == 'macOS/iOS' && 'macOS-iOS' || matrix.platform}}
           path: |
             ktreesitter/build/repo/**
             !ktreesitter/build/repo/**/maven-metadata.*
@@ -166,8 +174,8 @@ jobs:
     permissions:
       contents: write
     environment:
-      name: sonatype
-      url: https://central.sonatype.com/artifact/io.github.treesitter/ktreesitter
+      name: maven-central
+      url: https://central.sonatype.com/artifact/io.github.tree-sitter/ktreesitter
     env:
       SONATYPE_API: https://central.sonatype.com/api/v1/publisher
       SONATYPE_AUTH: "Authorization: Bearer ${{secrets.SONATYPE_TOKEN}}"
@@ -176,7 +184,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ktreesitter
-          pattern: ktreesitter-*
+          pattern: ktreesitter-jars-*
           merge-multiple: true
       - name: Upload bundle
         run: |-
@@ -200,10 +208,14 @@ jobs:
         run: gh release create $GITHUB_REF_NAME --generate-notes
         env:
           GH_TOKEN: ${{github.token}}
+          GH_REPO: ${{github.repository}}
   publish-plugin:
     runs-on: ubuntu-latest
-    name: Publish Gradle plugin
+    name: Publish plugin on Gradle Portal
     needs: [build-jars]
+    environment:
+      name: gradle-plugin-portal
+      url: https://plugins.gradle.org/plugin/io.github.tree-sitter.ktreesitter-plugin
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -218,10 +230,14 @@ jobs:
           cache-dependency-path: |
             gradle/libs.versions.toml
             gradle/wrapper/gradle-wrapper.properties
-      - name: Publish plugin
-        run: >-
-          ./gradlew --no-daemon :ktreesitter-plugin:publishPlugins
-          -Pgradle.publish.key=$PUBLISH_KEY -Pgradle.publish.secret=$PUBLISH_SECRET
+      - name: Restore Kotlin/Native prebuilt
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
+          key: konan-${{runner.os}}-prebuilt-1.9
+      - name: Publish Gradle plugin
+        run: ./gradlew --no-daemon :ktreesitter-plugin:publishPlugins
         env:
-          PUBLISH_KEY: ${{secrets.GRADLE_PUBLISH_KEY}}
-          PUBLISH_SECRET: ${{secrets.GRADLE_PUBLISH_SECRET}}
+          KONAN_DATA_DIR: ${{runner.tool_cache}}/konan
+          GRADLE_PUBLISH_KEY: ${{secrets.GRADLE_PUBLISH_KEY}}
+          GRADLE_PUBLISH_SECRET: ${{secrets.GRADLE_PUBLISH_SECRET}}

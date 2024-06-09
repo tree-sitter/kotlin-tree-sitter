@@ -158,33 +158,40 @@ publishing {
     publications.withType(MavenPublication::class) {
         artifact(tasks["javadocJar"])
         pom {
-            name.set("KTreeSitter")
-            description.set("Kotlin bindings to the Tree-sitter parsing library")
-            url.set("https://tree-sitter.github.io/kotlin-tree-sitter/")
-            inceptionYear.set("2024")
+            name = "KTreeSitter"
+            description = "Kotlin bindings to the Tree-sitter parsing library"
+            url = "https://tree-sitter.github.io/kotlin-tree-sitter/"
+            inceptionYear = "2024"
+            organization {
+                name = "tree-sitter"
+                url = "https://github.com/tree-sitter"
+            }
             licenses {
                 license {
-                    name.set("MIT License")
-                    url.set("https://spdx.org/licenses/MIT.html")
+                    name = "MIT License"
+                    url = "https://spdx.org/licenses/MIT.html"
                 }
             }
             developers {
                 developer {
-                    id.set("ObserverOfTime")
-                    email.set("chronobserver@disroot.org")
-                    url.set("https://github.com/ObserverOfTime")
+                    id = "ObserverOfTime"
+                    name = "ObserverOfTime"
+                    email = "chronobserver@disroot.org"
+                    url = "https://github.com/ObserverOfTime"
                 }
             }
             scm {
-                url.set("https://github.com/tree-sitter/kotlin-tree-sitter")
-                connection.set("scm:git:git://github.com/tree-sitter/kotlin-tree-sitter.git")
-                developerConnection.set(
-                    "scm:git:ssh://github.com/tree-sitter/kotlin-tree-sitter.git"
-                )
+                url = "https://github.com/tree-sitter/kotlin-tree-sitter"
+                connection = "scm:git:git://github.com/tree-sitter/kotlin-tree-sitter.git"
+                developerConnection = "scm:git:ssh://github.com/tree-sitter/kotlin-tree-sitter.git"
+            }
+            issueManagement {
+                system = "GitHub Issues"
+                url = "https://github.com/tree-sitter/kotlin-tree-sitter/issues"
             }
             ciManagement {
-                system.set("GitHub Actions")
-                url.set("https://github.com/tree-sitter/kotlin-tree-sitter/actions")
+                system = "GitHub Actions"
+                url = "https://github.com/tree-sitter/kotlin-tree-sitter/actions"
             }
         }
     }
