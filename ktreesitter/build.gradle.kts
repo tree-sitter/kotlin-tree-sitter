@@ -209,11 +209,10 @@ signing {
 
 tasks.dokkaHtml {
     val tmpDir = layout.buildDirectory.get().dir("tmp")
-    val readme = rootDir.resolve("README.md")
     val ref = System.getenv("GITHUB_SHA")?.subSequence(0, 7) ?: "master"
     val url = "https://github.com/tree-sitter/kotlin-tree-sitter/blob/$ref/ktreesitter"
 
-    inputs.file(readme)
+    inputs.file(file("README.md"))
 
     moduleName.set("KTreeSitter")
 
@@ -226,8 +225,7 @@ tasks.dokkaHtml {
     dokkaSourceSets.configureEach {
         jdkVersion.set(17)
         noStdlibLink.set(true)
-        // TODO: uncomment when ready
-        // includes.from(tmpDir.file("README.md"))
+        includes.from(tmpDir.file("README.md"))
         externalDocumentationLink("https://kotlinlang.org/api/core/")
         sourceLink {
             localDirectory.set(projectDir)
@@ -237,9 +235,13 @@ tasks.dokkaHtml {
 
     doFirst {
         copy {
-            from(readme)
+            from(file("README.md"))
             into(tmpDir)
-            filter { it.replaceFirst("# KTreeSitter", "# Module KTreeSitter") }
+            filter { file ->
+                file.replaceFirst("# KTreeSitter", "# Module KTreeSitter")
+                    .replaceFirst("\$ktreesitterVersion", "\"$version\"")
+                    .replace("[x]", "&#x2611;").replace("[ ]", "&#x2610;")
+            }
         }
     }
 

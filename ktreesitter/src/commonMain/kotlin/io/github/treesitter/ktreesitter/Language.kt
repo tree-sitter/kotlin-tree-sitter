@@ -69,7 +69,10 @@ expect class Language @Throws(IllegalArgumentException::class) constructor(langu
     /**
      * Create a new [Query] from a string containing one or more S-expression
      * [patterns](https://tree-sitter.github.io/tree-sitter/using-parsers#query-syntax).
+     *
+     * @throws [QueryError] If any error occurred while creating the query.
      */
+    @Throws(QueryError::class)
     fun query(source: String): Query
 
     override fun equals(other: Any?): Boolean

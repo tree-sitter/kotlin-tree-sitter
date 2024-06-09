@@ -42,10 +42,10 @@ actual class Node internal constructor(
         get() = ts_node_grammar_type(self)!!.toKString()
 
     /**
-     * Check if the node is *named*.
+     * Check if the node is _named_.
      *
      * Named nodes correspond to named rules in the grammar,
-     * whereas *anonymous* nodes correspond to string literals.
+     * whereas _anonymous_ nodes correspond to string literals.
      */
     actual val isNamed: Boolean
         get() = ts_node_is_named(self)

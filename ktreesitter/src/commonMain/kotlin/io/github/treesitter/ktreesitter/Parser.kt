@@ -33,7 +33,7 @@ expect class Parser() {
      * The ranges of text that the parser will include when parsing.
      *
      * By default, the parser will always include entire documents.
-     * Setting this property allows you to parse only a *portion* of a
+     * Setting this property allows you to parse only a _portion_ of a
      * document but still return a syntax tree whose ranges match up with
      * the document as a whole. You can also pass multiple disjoint ranges.
      *

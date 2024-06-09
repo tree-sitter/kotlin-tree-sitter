@@ -94,7 +94,10 @@ actual class Language @Throws(IllegalArgumentException::class) actual constructo
     /**
      * Create a new [Query] from a string containing one or more S-expression
      * [patterns](https://tree-sitter.github.io/tree-sitter/using-parsers#query-syntax).
+     *
+     * @throws [QueryError] If any error occurred while creating the query.
      */
+    @Throws(QueryError::class)
     actual fun query(source: String) = Query(this, source)
 
     actual override fun equals(other: Any?) =

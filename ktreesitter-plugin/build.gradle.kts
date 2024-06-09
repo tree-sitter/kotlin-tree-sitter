@@ -23,7 +23,7 @@ java {
 @Suppress("UnstableApiUsage")
 gradlePlugin {
     vcsUrl = "https://github.com/tree-sitter/kotlin-tree-sitter"
-    website = "https://github.com/tree-sitter/kotlin-tree-sitter/tree/master/plugin"
+    website = "https://github.com/tree-sitter/kotlin-tree-sitter/tree/master/ktreesitter-plugin"
     plugins.create("ktreesitter") {
         id = "$group.${project.name}"
         displayName = "KTreeSitter grammar plugin"
