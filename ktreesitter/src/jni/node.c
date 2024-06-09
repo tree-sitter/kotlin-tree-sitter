@@ -155,6 +155,7 @@ jobject JNICALL node_get_children(JNIEnv *env, jobject this) {
 
     jobject tree = GET_FIELD(Object, this, Node_tree);
     TSTreeCursor cursor = ts_tree_cursor_new(self);
+    (void)ts_tree_cursor_goto_first_child(&cursor);
     for (uint32_t i = 0; i < count; ++i) {
         TSNode ts_node = ts_tree_cursor_current_node(&cursor);
         jobject node_obj = marshal_node(env, ts_node, tree);

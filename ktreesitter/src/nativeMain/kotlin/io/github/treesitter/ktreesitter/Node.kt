@@ -164,6 +164,7 @@ actual class Node internal constructor(
                 val length = childCount.toInt()
                 if (length == 0) return emptyList()
                 val cursor = ts_tree_cursor_new(self).ptr
+                ts_tree_cursor_goto_first_child(cursor)
                 internalChildren = List(length) {
                     val node = ts_tree_cursor_current_node(cursor)
                     ts_tree_cursor_goto_next_sibling(cursor)

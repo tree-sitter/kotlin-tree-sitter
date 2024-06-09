@@ -129,7 +129,7 @@ class NodeTest : FunSpec({
 
     test("children") {
         val children = rootNode.children
-        children.forSingle { it.type shouldBe "program" }
+        children.forSingle { it.type shouldBe "class_declaration" }
         rootNode.children shouldBeSameInstanceAs children
     }
 
