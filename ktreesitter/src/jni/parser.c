@@ -72,10 +72,13 @@ static const char *parse_callback(void *payload, uint32_t byte_index, TSPoint po
 
 jlong JNICALL parser_init CRITICAL_NO_ARGS() { return (jlong)ts_parser_new(); }
 
-void JNICALL parser_delete(JNIEnv *env, jclass _class, jlong self) {
+jlong JNICALL parser_alloc_flag CRITICAL_NO_ARGS() { return (jlong)calloc(1, sizeof(size_t)); }
+
+void JNICALL parser_delete(JNIEnv *env, jclass _class, jlong self, jlong flag) {
     TSLogger logger = ts_parser_logger((TSParser *)self);
     if (logger.payload != NULL)
         (*env)->DeleteGlobalRef(env, (jobject)logger.payload);
+    free((void *)flag);
     ts_parser_delete((TSParser *)self);
 }
 
@@ -138,6 +141,44 @@ void JNICALL parser_set_logger(JNIEnv *env, jobject this, jobject value) {
     (*env)->SetObjectField(env, this, global_field_cache.Parser_logger, value);
 }
 
+jlong JNICALL parser_get_cancellation_flag(JNIEnv *env, jobject this) {
+    TSParser *self = GET_POINTER(TSParser, this, Parser_self);
+    const size_t *flag = ts_parser_cancellation_flag(self);
+    return flag != NULL ? (jlong)*flag : 0;
+}
+
+void JNICALL parser_set_cancellation_flag(JNIEnv *env, jobject this, jlong value) {
+    TSParser *self = GET_POINTER(TSParser, this, Parser_self);
+    size_t *flag = GET_POINTER(size_t, this, Parser_internalCancellationFlag);
+    ts_parser_set_cancellation_flag(self, flag);
+    *flag = (size_t)value;
+}
+
+/*
+jobject JNICALL parser_get_cancellation_flag(JNIEnv *env, jobject this) {
+    TSParser *self = GET_POINTER(TSParser, this, Parser_self);
+    const size_t *flag = ts_parser_cancellation_flag(self);
+    if (flag == NULL)
+        return NULL;
+
+    jobject value = (*env)->AllocObject(env, global_class_cache.ULong);
+    (*env)->SetLongField(env, value, global_field_cache.ULong_data, (jlong)*flag);
+    return value;
+}
+
+void JNICALL parser_set_cancellation_flag(JNIEnv *env, jobject this, jobject value) {
+    TSParser *self = GET_POINTER(TSParser, this, Parser_self);
+    if (value == NULL) {
+        ts_parser_set_cancellation_flag(self, NULL);
+    } else {
+        size_t *flag = GET_POINTER(size_t, this, Parser_internalCancellationFlag);
+        *flag = (size_t)(*env)->GetLongField(env, value, global_field_cache.ULong_data);
+        fprintf(stderr, "Flag 0x%lx: %lu\n", (uintptr_t)flag, *flag);
+        ts_parser_set_cancellation_flag(self, flag);
+    }
+}
+*/
+
 jobject JNICALL parser_parse__string(JNIEnv *env, jobject this, jstring source, jobject old_tree) {
     TSParser *self = GET_POINTER(TSParser, this, Parser_self);
     jobject language = GET_FIELD(Object, this, Parser_language);
@@ -163,7 +204,7 @@ jobject JNICALL parser_parse__string(JNIEnv *env, jobject this, jstring source, 
 }
 
 jobject JNICALL parser_parse__function(JNIEnv *env, jobject this, jobject old_tree,
-                                              jobject callback) {
+                                       jobject callback) {
     TSParser *self = GET_POINTER(TSParser, this, Parser_self);
     jobject language = GET_FIELD(Object, this, Parser_language);
     if (language == NULL) {
@@ -200,12 +241,15 @@ void JNICALL parser_reset(JNIEnv *env, jobject this) {
 
 const JNINativeMethod Parser_methods[] = {
     {"init", "()J", (void *)&parser_init},
-    {"delete", "(J)V", (void *)&parser_delete},
+    {"allocFlag", "()J", (void *)&parser_alloc_flag},
+    {"delete", "(JJ)V", (void *)&parser_delete},
     {"setLanguage", "(L" PACKAGE "Language;)V", (void *)&parser_set_language},
     {"setIncludedRanges", "(Ljava/util/List;)V", (void *)&parser_set_included_ranges},
     {"getTimeoutMicros", "()J", (void *)&parser_get_timeout_micros},
     {"setTimeoutMicros", "(J)V", (void *)&parser_set_timeout_micros},
     {"setLogger", "(Lkotlin/jvm/functions/Function2;)V", (void *)&parser_set_logger},
+    {"getCancellationFlag", "()J", (void *)&parser_get_cancellation_flag},
+    {"setCancellationFlag", "(J)V", (void *)&parser_set_cancellation_flag},
     {"parse", "(Ljava/lang/String;L" PACKAGE "Tree;)L" PACKAGE "Tree;",
      (void *)&parser_parse__string},
     {"parse", "(L" PACKAGE "Tree;Lkotlin/jvm/functions/Function2;)L" PACKAGE "Tree;",

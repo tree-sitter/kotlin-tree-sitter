@@ -12,8 +12,11 @@ actual class Parser actual constructor() {
 
     private val self = init()
 
+    @Volatile
+    private var internalCancellationFlag: Long = allocFlag()
+
     init {
-        RefCleaner(this, CleanAction(self))
+        RefCleaner(this, CleanAction(self, internalCancellationFlag))
     }
 
     /**
@@ -49,13 +52,25 @@ actual class Parser actual constructor() {
         external set
 
     /**
+     * The parser's current cancellation flag.
+     *
+     * The parser will periodically read this flag during parsing.
+     * If it reads a non-zero value, it will halt early.
+     */
+    @get:JvmName("getCancellationFlag")
+    @set:JvmName("setCancellationFlag")
+    actual var cancellationFlag: ULong
+        external get
+        external set
+
+    /**
      * The logger that the parser will use during parsing.
      *
      * #### Example
      *
      * ```
-     * import org.slf4j.LoggerFactory;
-     * import org.slf4j.MarkerFactory;
+     * import org.slf4j.LoggerFactory
+     * import org.slf4j.MarkerFactory
      *
      * val logger = LoggerFactory.getLogger(parser.javaClass)
      * val lexMarker = MarkerFactory.getMarker("TS LEX")
@@ -84,8 +99,8 @@ actual class Parser actual constructor() {
      * [Tree.edit] method in a way that exactly matches the source code changes.
      *
      * @throws [IllegalStateException]
-     *  If the parser does not have a [language] assigned or
-     *  if parsing was cancelled due to a [timeout][timeoutMicros].
+     *  If the parser does not have a [language] assigned or if parsing was
+     *  cancelled due to a [timeout][timeoutMicros] or [flag][cancellationFlag].
      */
     @Throws(IllegalStateException::class)
     actual external fun parse(source: String, oldTree: Tree?): Tree
@@ -100,8 +115,8 @@ actual class Parser actual constructor() {
      * [Tree.edit] method in a way that exactly matches the source code changes.
      *
      * @throws [IllegalStateException]
-     *  If the parser does not have a [language] assigned or
-     *  if parsing was cancelled due to a [timeout][timeoutMicros].
+     *  If the parser does not have a [language] assigned or if parsing was
+     *  cancelled due to a [timeout][timeoutMicros] or [flag][cancellationFlag].
      */
     @Throws(IllegalStateException::class)
     actual external fun parse(oldTree: Tree?, callback: ParseCallback): Tree
@@ -109,10 +124,9 @@ actual class Parser actual constructor() {
     /**
      * Instruct the parser to start the next [parse] from the beginning.
      *
-     * If the parser previously failed because of a [timeout][timeoutMicros],
-     * then by default, it will resume where it left off. If you don't
-     * want to resume, and instead intend to use this parser to parse
-     * some other document, you must call this method first.
+     * If the parser was previously cancelled, then by default, it will resume
+     * where it left off. If you don't want to resume, and instead intend to use
+     * this parser to parse some other document, you must call this method first.
      */
     actual external fun reset()
 
@@ -124,8 +138,8 @@ actual class Parser actual constructor() {
     @Suppress("unused")
     actual enum class LogType { LEX, PARSE }
 
-    private class CleanAction(private val ptr: Long) : Runnable {
-        override fun run() = delete(ptr)
+    private class CleanAction(private val ptr: Long, private val flag: Long) : Runnable {
+        override fun run() = delete(ptr, flag)
     }
 
     private companion object {
@@ -133,7 +147,10 @@ actual class Parser actual constructor() {
         private external fun init(): Long
 
         @JvmStatic
-        private external fun delete(self: Long)
+        private external fun allocFlag(): Long
+
+        @JvmStatic
+        private external fun delete(self: Long, flag: Long)
 
         init {
             NativeUtils.loadLibrary()

@@ -47,11 +47,17 @@ expect class Parser() {
      */
     var timeoutMicros: ULong
 
+    /**
+     * The parser's current cancellation flag.
+     *
+     * The parser will periodically read this flag during parsing.
+     * If it reads a non-zero value, it will halt early.
+     */
+    var cancellationFlag: ULong
+
     /** The logger that the parser will use during parsing. */
     @get:Deprecated("The logger can't be called directly.", level = DeprecationLevel.HIDDEN)
     var logger: LogFunction?
-
-    // TODO: add cancellationFlag
 
     /**
      * Parse a source code string and create a syntax tree.
@@ -63,8 +69,8 @@ expect class Parser() {
      * [Tree.edit] method in a way that exactly matches the source code changes.
      *
      * @throws [IllegalStateException]
-     *  If the parser does not have a [language] assigned or
-     *  if parsing was cancelled due to a [timeout][timeoutMicros].
+     *  If the parser does not have a [language] assigned or if parsing was
+     *  cancelled due to a [timeout][timeoutMicros] or [flag][cancellationFlag].
      */
     @Throws(IllegalStateException::class)
     fun parse(source: String, oldTree: Tree? = null): Tree
@@ -79,8 +85,8 @@ expect class Parser() {
      * [Tree.edit] method in a way that exactly matches the source code changes.
      *
      * @throws [IllegalStateException]
-     *  If the parser does not have a [language] assigned or
-     *  if parsing was cancelled due to a [timeout][timeoutMicros].
+     *  If the parser does not have a [language] assigned or if parsing was
+     *  cancelled due to a [timeout][timeoutMicros] or [flag][cancellationFlag].
      */
     @Throws(IllegalStateException::class)
     fun parse(oldTree: Tree? = null, callback: ParseCallback): Tree
@@ -88,10 +94,9 @@ expect class Parser() {
     /**
      * Instruct the parser to start the next [parse] from the beginning.
      *
-     * If the parser previously failed because of a [timeout][timeoutMicros],
-     * then by default, it will resume where it left off. If you don't
-     * want to resume, and instead intend to use this parser to parse
-     * some other document, you must call this method first.
+     * If the parser was previously cancelled, then by default, it will resume
+     * where it left off. If you don't want to resume, and instead intend to use
+     * this parser to parse some other document, you must call this method first.
      */
     fun reset()
 

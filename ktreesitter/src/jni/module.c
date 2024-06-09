@@ -110,6 +110,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
     REGISTER_CLASS(Parser);
     CACHE_FIELD(Parser, self, "J");
     CACHE_FIELD(Parser, timeoutMicros, "J");
+    CACHE_FIELD(Parser, internalCancellationFlag, "J");
     CACHE_FIELD(Parser, language, "L" PACKAGE "Language;");
     CACHE_FIELD(Parser, includedRanges, "Ljava/util/List;");
     CACHE_FIELD(Parser, logger, "Lkotlin/jvm/functions/Function2;");
@@ -176,6 +177,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
     CACHE_CLASS("kotlin/", UInt);
     CACHE_FIELD(UInt, data, "I");
 
+    CACHE_CLASS("kotlin/", ULong);
+    CACHE_FIELD(ULong, data, "J");
+
     CACHE_CLASS("kotlin/jvm/functions/", Function2);
     CACHE_METHOD(Function2, invoke, "invoke",
                  "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
@@ -221,4 +225,5 @@ JNIEXPORT void JNI_OnUnload(JavaVM *vm, void *_reserved) {
     (*env)->DeleteGlobalRef(env, global_class_cache.Tree);
     (*env)->DeleteGlobalRef(env, global_class_cache.TreeCursor);
     (*env)->DeleteGlobalRef(env, global_class_cache.UInt);
+    (*env)->DeleteGlobalRef(env, global_class_cache.ULong);
 }

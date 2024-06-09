@@ -1,6 +1,7 @@
 package io.github.treesitter.ktreesitter
 
 import io.github.treesitter.ktreesitter.internal.*
+import kotlin.concurrent.Volatile
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.native.ref.createCleaner
 import kotlinx.cinterop.*
@@ -24,6 +25,14 @@ actual class Parser actual constructor() {
         freeLogger(ts_parser_logger(it))
         ts_parser_delete(it)
     }
+
+    @Volatile
+    private var internalCancellationFlag =
+        kts_malloc(sizeOf<ULongVar>().toULong())!!.reinterpret<ULongVar>()
+
+    @Suppress("unused")
+    @OptIn(ExperimentalNativeApi::class)
+    private val flagCleaner = createCleaner(internalCancellationFlag, ::kts_free)
 
     /**
      * The language that the parser will use for parsing.
@@ -73,6 +82,19 @@ actual class Parser actual constructor() {
         get() = ts_parser_timeout_micros(self)
         set(value) = ts_parser_set_timeout_micros(self, value)
 
+    /**
+     * The parser's current cancellation flag.
+     *
+     * The parser will periodically read this flag during parsing.
+     * If it reads a non-zero value, it will halt early.
+     */
+    actual var cancellationFlag: ULong
+        get() = ts_parser_cancellation_flag(self)?.pointed?.value ?: 0U
+        set(value) {
+            internalCancellationFlag.pointed.value = value
+            ts_parser_set_cancellation_flag(self, internalCancellationFlag)
+        }
+
     /** The logger that the parser will use during parsing. */
     @get:Deprecated("The logger can't be called directly.", level = DeprecationLevel.HIDDEN)
     actual var logger: LogFunction? = null
@@ -106,8 +128,8 @@ actual class Parser actual constructor() {
      * [Tree.edit] method in a way that exactly matches the source code changes.
      *
      * @throws [IllegalStateException]
-     *  If the parser does not have a [language] assigned or
-     *  if parsing was canceled due to a [timeout][timeoutMicros].
+     *  If the parser does not have a [language] assigned or if parsing was
+     *  cancelled due to a [timeout][timeoutMicros] or [flag][cancellationFlag].
      */
     @Throws(IllegalStateException::class)
     actual fun parse(source: String, oldTree: Tree?): Tree {
@@ -134,8 +156,8 @@ actual class Parser actual constructor() {
      * [Tree.edit] method in a way that exactly matches the source code changes.
      *
      * @throws [IllegalStateException]
-     *  If the parser does not have a [language] assigned or
-     *  if parsing was cancelled due to a [timeout][timeoutMicros].
+     *  If the parser does not have a [language] assigned or if parsing was
+     *  cancelled due to a [timeout][timeoutMicros] or [flag][cancellationFlag].
      */
     @Throws(IllegalStateException::class)
     actual fun parse(oldTree: Tree?, callback: ParseCallback): Tree {
@@ -164,10 +186,9 @@ actual class Parser actual constructor() {
     /**
      * Instruct the parser to start the next [parse] from the beginning.
      *
-     * If the parser previously failed because of a [timeout][timeoutMicros],
-     * then by default, it will resume where it left off. If you don't
-     * want to resume, and instead intend to use this parser to parse
-     * some other document, you must call this method first.
+     * If the parser was previously cancelled, then by default, it will resume
+     * where it left off. If you don't want to resume, and instead intend to use
+     * this parser to parse some other document, you must call this method first.
      */
     actual fun reset() = ts_parser_reset(self)
 
