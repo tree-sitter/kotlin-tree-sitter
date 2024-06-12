@@ -1,12 +1,16 @@
 name: Docs
 
-run-name: ${{github.event.workflow_run.head_commit.message}}
+run-name: Update API docs
 
 on:
   workflow_run:
     workflows: [CI]
     types: [completed]
     branches: [master]
+  push:
+    branches: [master]
+    paths:
+      - ktreesitter/README.md
 
 concurrency:
   cancel-in-progress: true
@@ -20,7 +24,9 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     name: Publish docs on GitHub pages
-    if: github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event_name == 'push' ||
+      github.event.workflow_run.conclusion == 'success'
     environment:
       name: github-pages
       url: ${{steps.deployment.outputs.page_url}}

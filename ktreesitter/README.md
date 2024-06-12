@@ -26,14 +26,14 @@ repositories {
 ## Basic usage
 
 ```kotlin
-import io.github.treesitter.ktreesitter.*
-import io.github.treesitter.ktreesitter.java.TreeSitterJava
-
-val language = Language(TreeSitterJava.language())
+val language = Language(TreeSitterKotlin.language())
 val parser = Parser(language)
-val tree = parser.parse("class Foo {}")
+val tree = parser.parse("fun main() {}")
+val rootNode = tree.rootNode
 
-assert(tree.rootNode.type == "program")
+assert(rootNode.type == "source_file")
+assert(rootNode.startPoint.column == 0)
+assert(rootNode.endPoint.column == 13)
 ```
 
 [tree-sitter]: https://tree-sitter.github.io/tree-sitter/

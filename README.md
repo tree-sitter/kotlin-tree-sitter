@@ -26,5 +26,5 @@ Some bundled languages that are relevant to Kotlin development.
 [tree-sitter]: https://tree-sitter.github.io/tree-sitter/
 [ci]: https://img.shields.io/github/actions/workflow/status/tree-sitter/kotlin-tree-sitter/ci.yml?logo=github&label=CI
 [central]: https://img.shields.io/maven-central/v/io.github.tree-sitter/ktreesitter?logo=sonatype&label=Maven%20Central
-[portal]: https://img.shields.io/gradle-plugin-portal/v/io.github.treesitter.ktreesitter-plugin?logo=gradle&label=Gradle%20Plugin%20Portal
+[portal]: https://img.shields.io/gradle-plugin-portal/v/io.github.tree-sitter.ktreesitter-plugin?logo=gradle&label=Gradle%20Plugin%20Portal
 [docs]: https://img.shields.io/github/deployments/tree-sitter/kotlin-tree-sitter/github-pages?logo=kotlin&label=API%20Docs
