@@ -3,6 +3,7 @@ package io.github.treesitter.ktreesitter
 import br.com.colman.kotest.KotestRunnerAndroid
 import io.github.treesitter.ktreesitter.java.TreeSitterJava
 import io.kotest.assertions.throwables.shouldNotThrowAnyUnit
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.inspectors.forSome
 import io.kotest.matchers.*
@@ -34,6 +35,12 @@ class ParserTest : FunSpec({
         parser.timeoutMicros shouldBe 0UL
         parser.timeoutMicros = 10000UL
         parser.timeoutMicros shouldBe 10000UL
+    }
+
+    test("cancellationFlag") {
+        parser.cancellationFlag shouldBe 0UL
+        parser.cancellationFlag = 10UL
+        parser.cancellationFlag shouldBe 10UL
     }
 
     test("logger") {
@@ -73,12 +80,21 @@ class ParserTest : FunSpec({
         }
         tree.text().shouldBeNull()
         tree.rootNode.type shouldBe "program"
+
+        // Timeout
+        parser.timeoutMicros = 1000UL
+        shouldThrow<IllegalStateException> {
+            parser.parse { _, _ -> "{" }
+        }
+        parser.reset()
+        parser.timeoutMicros = 0UL
     }
 
     afterTest { (test, _) ->
         when (test.name.testName) {
             "includedRanges" -> parser.includedRanges = emptyList()
             "timeoutMicros" -> parser.timeoutMicros = 0UL
+            "cancellationFlag" -> parser.cancellationFlag = 0UL
             "logger" -> parser.logger = null
         }
     }
