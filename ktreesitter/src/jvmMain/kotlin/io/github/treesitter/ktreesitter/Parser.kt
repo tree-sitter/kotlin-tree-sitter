@@ -54,8 +54,8 @@ actual class Parser actual constructor() {
      * #### Example
      *
      * ```
-     * import org.slf4j.LoggerFactory;
-     * import org.slf4j.MarkerFactory;
+     * import org.slf4j.LoggerFactory
+     * import org.slf4j.MarkerFactory
      *
      * val logger = LoggerFactory.getLogger(parser.javaClass)
      * val lexMarker = MarkerFactory.getMarker("TS LEX")

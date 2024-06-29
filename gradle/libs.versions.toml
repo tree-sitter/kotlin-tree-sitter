@@ -9,6 +9,10 @@ dokka = "1.9.20"
 module = "org.jetbrains.kotlin:kotlin-stdlib"
 version.ref = "kotlin-stdlib"
 
+[libraries.kotlin-test]
+module = "org.jetbrains.kotlin:kotlin-test"
+version.ref = "kotlin-stdlib"
+
 [libraries.kotest-engine]
 module = "io.kotest:kotest-framework-engine"
 version.ref = "kotest"

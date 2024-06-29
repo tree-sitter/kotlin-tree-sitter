@@ -22,7 +22,7 @@ you can use the [Conventional Commit plugin].
 
 ```shell
 git clone https://github.com/tree-sitter/kotlin-tree-sitter
-cd kotlin-tree-sitter
+cd kotlin-tree-sitter && git submodule init
 ```
 
 ### Build the JNI libraries
