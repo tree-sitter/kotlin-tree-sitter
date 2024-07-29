@@ -146,6 +146,15 @@ expect class Query @Throws(QueryError::class) constructor(language: Language, so
     fun startByteForPattern(index: UInt): UInt
 
     /**
+     * Get the byte offset where the given pattern ends in the query's source.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
+     */
+    @Throws(IndexOutOfBoundsException::class)
+    fun endByteForPattern(index: UInt): UInt
+
+    /**
      * Check if the pattern with the given index has a single root node.
      *
      * @throws [IndexOutOfBoundsException]

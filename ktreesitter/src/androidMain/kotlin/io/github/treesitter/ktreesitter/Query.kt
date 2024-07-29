@@ -458,6 +458,17 @@ actual class Query @Throws(QueryError::class) actual constructor(
     actual external fun startByteForPattern(index: UInt): UInt
 
     /**
+     * Get the byte offset where the given pattern ends in the query's source.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
+     */
+    @FastNative
+    @JvmName("endByteForPattern")
+    @Throws(IndexOutOfBoundsException::class)
+    actual external fun endByteForPattern(index: UInt): UInt
+
+    /**
      * Check if the pattern with the given index has a single root node.
      *
      * @throws [IndexOutOfBoundsException]

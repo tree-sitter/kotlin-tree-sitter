@@ -543,6 +543,19 @@ actual class Query @Throws(QueryError::class) actual constructor(
     }
 
     /**
+     * Get the byte offset where the given pattern ends in the query's source.
+     *
+     * @throws [IndexOutOfBoundsException]
+     *  If the index exceeds the [pattern count][patternCount].
+     */
+    @Throws(IndexOutOfBoundsException::class)
+    actual fun endByteForPattern(index: UInt): UInt {
+        if (index >= patternCount)
+            throw IndexOutOfBoundsException("Pattern index $index is out of bounds")
+        return ts_query_end_byte_for_pattern(self, index)
+    }
+
+    /**
      * Check if the pattern with the given index has a single root node.
      *
      * @throws [IndexOutOfBoundsException]
@@ -600,9 +613,10 @@ actual class Query @Throws(QueryError::class) actual constructor(
             )
         }
         return QueryMatch(index, captures).takeIf { match ->
-            tree.text() == null || predicates[index].all {
-                if (it !is QueryPredicate.Generic) it(match) else predicate(it, match)
-            }
+            tree.text() == null ||
+                predicates[index].all {
+                    if (it !is QueryPredicate.Generic) it(match) else predicate(it, match)
+                }
         }
     }
 

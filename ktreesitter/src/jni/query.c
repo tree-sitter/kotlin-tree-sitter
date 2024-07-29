@@ -187,6 +187,19 @@ jint query_start_byte_for_pattern(JNIEnv *env, jobject this, jint index) {
     return -1;
 }
 
+jint query_end_byte_for_pattern(JNIEnv *env, jobject this, jint index) {
+    TSQuery *self = GET_POINTER(TSQuery, this, Query_self);
+    if (ts_query_pattern_count(self) > (uint32_t)index) {
+        return (jint)ts_query_end_byte_for_pattern(self, (uint32_t)index);
+    }
+
+    const char *fmt = "Pattern index %u is out of bounds";
+    char buffer[45] = {0};
+    sprintf_s(buffer, 45, fmt, (uint32_t)index);
+    THROW(IndexOutOfBoundsException, (const char *)buffer);
+    return -1;
+}
+
 jboolean query_is_pattern_rooted(JNIEnv *env, jobject this, jint index) {
     TSQuery *self = GET_POINTER(TSQuery, this, Query_self);
     if (ts_query_pattern_count(self) > (uint32_t)index) {
@@ -331,6 +344,7 @@ const JNINativeMethod Query_methods[] = {
     {"didExceedMatchLimit", "()Z", (void *)&query_did_exceed_match_limit},
     {"disablePattern", "(I)V", (void *)&query_disable_pattern},
     {"startByteForPattern", "(I)I", (void *)&query_start_byte_for_pattern},
+    {"endByteForPattern", "(I)I", (void *)&query_end_byte_for_pattern},
     {"isPatternRooted", "(I)Z", (void *)&query_is_pattern_rooted},
     {"isPatternNonLocal", "(I)Z", (void *)&query_is_pattern_non_local},
     {"stringCount", "()I", (void *)&query_string_count},
