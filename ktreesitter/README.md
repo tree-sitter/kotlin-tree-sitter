@@ -9,11 +9,11 @@ Kotlin bindings to the [tree-sitter] parsing library.
 - [x] Native
 - [ ] WASI
 
-*JS and WASM JS will not be supported.*
+*JS and WasmJS will not be supported.*
 
 ## Installation
 
-```groovy
+```kotlin
 dependencies {
     implementation("io.github.tree-sitter:ktreesitter") version $ktreesitterVersion
 }
