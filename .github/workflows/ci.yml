@@ -130,11 +130,20 @@ jobs:
         env:
           CMAKE_INSTALL_LIBDIR: lib/${{matrix.lib_platform}}/${{matrix.lib_arch}}
       - name: Cache Kotlin/Native dependencies
+        id: cache-dependencies
         uses: actions/cache@v4
         if: matrix.platform != 'JVM' && matrix.platform != 'Android'
         with:
           path: ${{runner.tool_cache}}/konan/dependencies
           key: konan-${{runner.os}}-dependencies
+      - name: Download Kotlin/Native dependencies
+        if: matrix.platform == 'macOS/iOS' && steps.cache-dependencies.outputs.cache-hit != 'true'
+        run: |-
+          mkdir -p "$RUNNER_TOOL_CACHE/konan/dependencies"
+          curl -LSs https://download-cdn.jetbrains.com/kotlin/native/$DEP.tar.gz | \
+            tar -xzf - -C "$RUNNER_TOOL_CACHE/konan/dependencies"
+        env:
+          DEP: apple-llvm-20200714-macos-aarch64-essentials
       - name: Run tests
         run: ./gradlew --no-daemon ${{matrix.targets}}
         env:
