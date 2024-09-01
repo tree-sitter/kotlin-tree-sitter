@@ -1,7 +1,7 @@
 package io.github.treesitter.ktreesitter
 
 /** Any error that occurred while instantiating a [Query]. */
-sealed class QueryError : Throwable() {
+sealed class QueryError : IllegalArgumentException() {
     abstract override val message: String
 
     /** A query syntax error. */
