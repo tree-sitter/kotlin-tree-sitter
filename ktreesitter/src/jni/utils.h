@@ -82,6 +82,7 @@ typedef struct {
     jfieldID Query_maxStartDepth;
     jfieldID Query_self;
     jfieldID Query_source;
+    jfieldID Query_timeoutMicros;
     jfieldID Range_endByte;
     jfieldID Range_endPoint;
     jfieldID Range_startByte;

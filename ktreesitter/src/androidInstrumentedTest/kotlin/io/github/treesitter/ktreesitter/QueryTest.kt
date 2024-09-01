@@ -73,6 +73,13 @@ class QueryTest :
             query.captureCount shouldBe 3U
         }
 
+        test("timeoutMicros") {
+            val query = Query(language, source)
+            query.timeoutMicros shouldBe 0UL
+            query.timeoutMicros = 10UL
+            query.timeoutMicros shouldBe 10UL
+        }
+
         test("matchLimit") {
             val query = Query(language, source)
             query.matchLimit shouldBe UInt.MAX_VALUE

@@ -118,8 +118,6 @@ actual class Parser actual constructor() {
 
     override fun toString() = "Parser(language=$language)"
 
-    // private external fun nativeParse(oldTree: Tree?, callback: (Int, Point) -> CharSequence?): Tree
-
     /** The type of a log message. */
     @Suppress("unused")
     actual enum class LogType { LEX, PARSE }

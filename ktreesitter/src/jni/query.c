@@ -121,6 +121,17 @@ jint query_get_capture_count(JNIEnv *env, jobject this) {
     return (jint)ts_query_capture_count(self);
 }
 
+jlong query_get_timeout_micros(JNIEnv *env, jobject this) {
+    TSQueryCursor *cursor = GET_POINTER(TSQueryCursor, this, Query_cursor);
+    return (jlong)ts_query_cursor_timeout_micros(cursor);
+}
+
+void query_set_timeout_micros(JNIEnv *env, jobject this, jlong value) {
+    TSQueryCursor *cursor = GET_POINTER(TSQueryCursor, this, Query_cursor);
+    ts_query_cursor_set_timeout_micros(cursor, (uint64_t)value);
+    (*env)->SetLongField(env, this, global_field_cache.Query_timeoutMicros, value);
+}
+
 jint query_get_match_limit(JNIEnv *env, jobject this) {
     TSQueryCursor *cursor = GET_POINTER(TSQueryCursor, this, Query_cursor);
     return (jint)ts_query_cursor_match_limit(cursor);
@@ -338,6 +349,8 @@ const JNINativeMethod Query_methods[] = {
     {"delete", "(JJ)V", (void *)&query_delete},
     {"getPatternCount", "()I", (void *)&query_get_pattern_count},
     {"getCaptureCount", "()I", (void *)&query_get_capture_count},
+    {"getTimeoutMicros", "()J", (void *)&query_get_timeout_micros},
+    {"setTimeoutMicros", "(J)V", (void *)&query_set_timeout_micros},
     {"getMatchLimit", "()I", (void *)&query_get_match_limit},
     {"setMatchLimit", "(I)V", (void *)&query_set_match_limit},
     {"setMaxStartDepth", "(I)V", (void *)&query_set_max_start_depth},

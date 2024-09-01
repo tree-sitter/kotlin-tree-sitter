@@ -16,7 +16,17 @@ expect class Query @Throws(QueryError::class) constructor(language: Language, so
     val captureCount: UInt
 
     /**
+     * The maximum duration in microseconds that query
+     * execution should be allowed to take before halting.
+     *
+     * Default: `0`
+     */
+    var timeoutMicros: ULong
+
+    /**
      * The maximum number of in-progress matches.
+     *
+     * Default: `UInt.MAX_VALUE`
      *
      * @throws [IllegalArgumentException] If the match limit is set to `0`.
      */

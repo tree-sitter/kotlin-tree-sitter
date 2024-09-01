@@ -262,7 +262,21 @@ actual class Query @Throws(QueryError::class) actual constructor(
     }
 
     /**
+     * The maximum duration in microseconds that query
+     * execution should be allowed to take before halting.
+     *
+     * Default: `0`
+     */
+    @get:JvmName("getTimeoutMicros")
+    @set:JvmName("setTimeoutMicros")
+    actual var timeoutMicros: ULong
+        external get
+        external set
+
+    /**
      * The maximum number of in-progress matches.
+     *
+     * Default: `UInt.MAX_VALUE`
      *
      * @throws [IllegalArgumentException] If the match limit is set to `0`.
      */
