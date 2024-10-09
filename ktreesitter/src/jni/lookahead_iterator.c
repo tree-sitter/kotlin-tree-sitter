@@ -39,7 +39,7 @@ jboolean JNICALL lookahead_iterator_reset(JNIEnv *env, jobject this, jshort stat
     return (jboolean)ts_lookahead_iterator_reset(self, language_ptr, (uint16_t)state);
 }
 
-jboolean JNICALL lookahead_iterator_next(JNIEnv *env, jobject this) {
+jboolean JNICALL lookahead_iterator_native_next(JNIEnv *env, jobject this) {
     TSLookaheadIterator *self = GET_POINTER(TSLookaheadIterator, this, LookaheadIterator_self);
     return (jboolean)ts_lookahead_iterator_next(self);
 }
@@ -52,7 +52,7 @@ const JNINativeMethod LookaheadIterator_methods[] = {
     {"getCurrentSymbolName", "()Ljava/lang/String;",
      (void *)&lookahead_iterator_get_current_symbol_name},
     {"reset", "(SL" PACKAGE "Language;)Z", (void *)&lookahead_iterator_reset},
-    {"next", "()Z", (void *)&lookahead_iterator_next},
+    {"nativeNext", "()Z", (void *)&lookahead_iterator_native_next},
 };
 
 const size_t LookaheadIterator_methods_size =

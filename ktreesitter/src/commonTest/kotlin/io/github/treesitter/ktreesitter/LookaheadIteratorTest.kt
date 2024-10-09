@@ -16,7 +16,7 @@ class LookaheadIteratorTest : FunSpec({
     }
 
     test("next()") {
-        lookahead.next() shouldBe true
+        lookahead.next() shouldBe LookaheadIterator.Symbol(0U, "end")
     }
 
     test("reset()") {
@@ -33,7 +33,7 @@ class LookaheadIteratorTest : FunSpec({
         names shouldContainExactly listOf("end", "line_comment", "block_comment")
     }
 
-    test("iterator()") {
+    test("iterator") {
         for ((symbol, name) in lookahead) {
             symbol shouldBe lookahead.currentSymbol
             name shouldBe lookahead.currentSymbolName

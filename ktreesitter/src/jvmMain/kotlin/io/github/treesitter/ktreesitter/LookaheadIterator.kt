@@ -11,7 +11,7 @@ package io.github.treesitter.ktreesitter
 actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal constructor(
     language: Language,
     private val state: UShort
-) : Iterable<LookaheadIterator.Symbol> {
+) : AbstractIterator<LookaheadIterator.Symbol>() {
     private val self: Long = init(language.self, state).takeIf { it > 0L }
         ?: throw IllegalArgumentException("State $state is not valid for $language")
 
@@ -48,19 +48,16 @@ actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal
     @JvmName("reset")
     actual external fun reset(state: UShort, language: Language?): Boolean
 
-    /**
-     * Advance the lookahead iterator to the next symbol.
-     *
-     * @return `true` if there is a new symbol or `false` otherwise.
-     */
-    actual external fun next(): Boolean
+    /** Advance the lookahead iterator to the next symbol. */
+    actual override fun next() = super.next()
 
     /** Iterate over the symbol IDs. */
     actual fun symbols(): Sequence<UShort> {
         reset(state)
         return sequence {
-            while (next())
+            while (nativeNext()) {
                 yield(currentSymbol)
+            }
         }
     }
 
@@ -68,19 +65,21 @@ actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal
     actual fun symbolNames(): Sequence<String> {
         reset(state)
         return sequence {
-            while (next())
+            while (nativeNext()) {
                 yield(currentSymbolName)
+            }
         }
     }
 
-    /** Iterate over both symbol IDs and names. */
-    actual override fun iterator(): Iterator<Symbol> {
-        reset(state)
-        return iterator {
-            while (next())
-                yield(Symbol(currentSymbol, currentSymbolName))
-        }
+    override fun computeNext() = if (nativeNext()) {
+        setNext(Symbol(currentSymbol, currentSymbolName))
+    } else {
+        done()
     }
+
+    operator fun iterator() = apply { reset(state) }
+
+    private external fun nativeNext(): Boolean
 
     /** A class that pairs a symbol ID with its name. */
     @JvmRecord

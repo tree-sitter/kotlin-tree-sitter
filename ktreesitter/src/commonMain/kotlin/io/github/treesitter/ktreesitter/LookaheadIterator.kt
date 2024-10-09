@@ -8,7 +8,7 @@ package io.github.treesitter.ktreesitter
  * iterator on its first leaf node state. For `MISSING` nodes, a lookahead
  * iterator created on the previous non-extra leaf node may be appropriate.
  */
-expect class LookaheadIterator : Iterable<LookaheadIterator.Symbol> {
+expect class LookaheadIterator : AbstractIterator<LookaheadIterator.Symbol> {
     /** The current language of the lookahead iterator. */
     val language: Language
 
@@ -33,21 +33,14 @@ expect class LookaheadIterator : Iterable<LookaheadIterator.Symbol> {
      */
     fun reset(state: UShort, language: Language? = null): Boolean
 
-    /**
-     * Advance the lookahead iterator to the next symbol.
-     *
-     * @return `true` if there is a new symbol or `false` otherwise.
-     */
-    fun next(): Boolean
+    /** Advance the lookahead iterator to the next symbol. */
+    override fun next(): Symbol
 
     /** Iterate over the symbol IDs. */
     fun symbols(): Sequence<UShort>
 
     /** Iterate over the symbol names. */
     fun symbolNames(): Sequence<String>
-
-    /** Iterate over both symbol IDs and names. */
-    override operator fun iterator(): Iterator<Symbol>
 
     /** A class that pairs a symbol ID with its name. */
     class Symbol(id: UShort, name: String) {

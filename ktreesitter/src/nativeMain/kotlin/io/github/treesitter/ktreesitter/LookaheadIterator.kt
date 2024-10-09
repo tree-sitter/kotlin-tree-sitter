@@ -17,7 +17,7 @@ import kotlinx.cinterop.*
 actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal constructor(
     language: Language,
     private val state: UShort
-) : Iterable<LookaheadIterator.Symbol> {
+) : AbstractIterator<LookaheadIterator.Symbol>() {
     private val self = ts_lookahead_iterator_new(language.self, state)
         ?: throw IllegalArgumentException("State $state is not valid for $language")
 
@@ -50,27 +50,22 @@ actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal
      *
      * @return `true` if the iterator was reset successfully or `false` if it failed.
      */
-    actual fun reset(state: UShort, language: Language?): Boolean {
-        return if (language == null) {
-            ts_lookahead_iterator_reset_state(self, state)
-        } else {
-            ts_lookahead_iterator_reset(self, language.self, state)
-        }
+    actual fun reset(state: UShort, language: Language?): Boolean = if (language == null) {
+        ts_lookahead_iterator_reset_state(self, state)
+    } else {
+        ts_lookahead_iterator_reset(self, language.self, state)
     }
 
-    /**
-     * Advance the lookahead iterator to the next symbol.
-     *
-     * @return `true` if there is a new symbol or `false` otherwise.
-     */
-    actual fun next() = ts_lookahead_iterator_next(self)
+    /** Advance the lookahead iterator to the next symbol. */
+    actual override fun next() = super.next()
 
     /** Iterate over the symbol IDs. */
     actual fun symbols(): Sequence<UShort> {
         ts_lookahead_iterator_reset_state(self, state)
         return sequence {
-            while (ts_lookahead_iterator_next(self))
+            while (ts_lookahead_iterator_next(self)) {
                 yield(ts_lookahead_iterator_current_symbol(self))
+            }
         }
     }
 
@@ -78,22 +73,21 @@ actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal
     actual fun symbolNames(): Sequence<String> {
         ts_lookahead_iterator_reset_state(self, state)
         return sequence {
-            while (ts_lookahead_iterator_next(self))
-                yield(ts_lookahead_iterator_current_symbol_name(self)!!.toKString())
-        }
-    }
-
-    /** Iterate over both symbol IDs and names. */
-    actual override operator fun iterator(): Iterator<Symbol> {
-        ts_lookahead_iterator_reset_state(self, state)
-        return iterator {
             while (ts_lookahead_iterator_next(self)) {
-                val id = ts_lookahead_iterator_current_symbol(self)
-                val name = ts_lookahead_iterator_current_symbol_name(self)
-                yield(Symbol(id, name!!.toKString()))
+                yield(ts_lookahead_iterator_current_symbol_name(self)!!.toKString())
             }
         }
     }
+
+    override fun computeNext() = if (ts_lookahead_iterator_next(self)) {
+        val id = ts_lookahead_iterator_current_symbol(self)
+        val name = ts_lookahead_iterator_current_symbol_name(self)
+        setNext(Symbol(id, name!!.toKString()))
+    } else {
+        done()
+    }
+
+    operator fun iterator() = apply { reset(state) }
 
     /** A class that pairs a symbol ID with its name. */
     actual data class Symbol actual constructor(actual val id: UShort, actual val name: String)
