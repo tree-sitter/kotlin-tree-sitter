@@ -42,6 +42,8 @@ jobs:
         if: "!cancelled() && steps.ktlint.outcome == 'failure'"
         with:
           sarif_file: build/reports/ktlint.sarif
+          # FIXME: github/codeql-action#2215
+          checkout_path: ${{env.HOME}}
           category: ktlint
   detekt:
     runs-on: ubuntu-latest
@@ -55,12 +57,12 @@ jobs:
           java-version: 17
       - name: Install detekt
         run: |-
-          curl -sSLO https://github.com/detekt/detekt/releases/download/v1.23.6/detekt-cli-1.23.6-all.jar
-          mv detekt-cli-1.23.6-all.jar $RUNNER_TOOL_CACHE/detekt-cli.jar
+          curl -sSLO https://github.com/detekt/detekt/releases/download/v1.23.7/detekt-cli-1.23.7-all.jar
+          mv detekt-cli-1.23.7-all.jar $RUNNER_TOOL_CACHE/detekt-cli.jar
       - name: Run detekt
         id: detekt
         run: >-
-          java -jar $RUNNER_TOOL_CACHE/detekt-cli.jar --build-upon-default-config
+          java -jar $RUNNER_TOOL_CACHE/detekt-cli.jar --build-upon-default-config \
           --jvm-target 17 -c .github/detekt.yml -r sarif:build/reports/detekt.sarif
       - name: Upload report
         uses: github/codeql-action/upload-sarif@v3

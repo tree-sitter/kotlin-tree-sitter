@@ -2,7 +2,7 @@
 
 package @PACKAGE@
 
-import @PACKAGE@.internal.*
+@IMPORTS@
 import kotlinx.cinterop.ExperimentalForeignApi
 
 @OptIn(ExperimentalForeignApi::class)

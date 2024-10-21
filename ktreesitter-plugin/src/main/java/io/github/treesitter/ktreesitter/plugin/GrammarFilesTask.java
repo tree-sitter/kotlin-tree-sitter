@@ -194,12 +194,16 @@ public abstract class GrammarFilesTask extends DefaultTask {
         );
         mkdirs(classFile.getParent().toFile());
 
+        var imports = languageMethods.values().stream().map(method ->
+            "import %s.internal.%s".formatted(packageName, method)
+        );
         var methods = languageMethods.entrySet().stream().map(method ->
             "    actual fun %s(): Any = %s()!!".formatted(method.getKey(), method.getValue())
         );
         var template = readResource("native.kt.in")
             .replace("@PACKAGE@", packageName)
             .replace("@CLASS@", className)
+            .replace("@IMPORTS@", String.join("\n\n", imports.toList()))
             .replace("@METHODS@", String.join("\n\n", methods.toList()));
         writeFile(classFile.toFile(), template);
     }
