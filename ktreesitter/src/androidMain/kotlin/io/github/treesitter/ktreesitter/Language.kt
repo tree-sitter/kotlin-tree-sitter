@@ -65,6 +65,11 @@ actual class Language @Throws(IllegalArgumentException::class) actual constructo
     @JvmName("isVisible")
     actual external fun isVisible(symbol: UShort): Boolean
 
+    /** Check if the node for the given numerical ID is a supertype. */
+    @FastNative
+    @JvmName("isSupertype")
+    actual external fun isSupertype(symbol: UShort): Boolean
+
     /** Get the field name for the given numerical id. */
     @FastNative
     @JvmName("fieldNameForId")

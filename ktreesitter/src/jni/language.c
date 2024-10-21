@@ -48,6 +48,12 @@ jboolean JNICALL language_is_visible(JNIEnv *env, jobject this, jshort symbol) {
     return (jboolean)(symbol_type <= TSSymbolTypeAnonymous);
 }
 
+jboolean JNICALL language_is_supertype(JNIEnv *env, jobject this, jshort symbol) {
+    TSLanguage *self = GET_POINTER(TSLanguage, this, Language_self);
+    TSSymbolType symbol_type = ts_language_symbol_type(self, symbol);
+    return (jboolean)(symbol_type == TSSymbolTypeSupertype);
+}
+
 jstring JNICALL language_field_name_for_id(JNIEnv *env, jobject this, jshort id) {
     TSLanguage *self = GET_POINTER(TSLanguage, this, Language_self);
     const char *name = ts_language_field_name_for_id(self, (uint16_t)id);
@@ -90,6 +96,7 @@ const JNINativeMethod Language_methods[] = {
     {"symbolForName", "(Ljava/lang/String;Z)S", (void *)&language_symbol_for_name},
     {"isNamed", "(S)Z", (void *)&language_is_named},
     {"isVisible", "(S)Z", (void *)&language_is_visible},
+    {"isSupertype", "(S)Z", (void *)&language_is_supertype},
     {"fieldNameForId", "(S)Ljava/lang/String;", (void *)&language_field_name_for_id},
     {"fieldIdForName", "(Ljava/lang/String;)S", (void *)&language_field_id_for_name},
     {"nextState", "(SS)S", (void *)&language_next_state},

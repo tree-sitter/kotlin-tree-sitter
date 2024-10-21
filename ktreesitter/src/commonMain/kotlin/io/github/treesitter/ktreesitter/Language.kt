@@ -38,6 +38,9 @@ expect class Language @Throws(IllegalArgumentException::class) constructor(langu
     /** Check if the node for the given numerical ID is visible. */
     fun isVisible(symbol: UShort): Boolean
 
+    /** Check if the node for the given numerical ID is a supertype. */
+    fun isSupertype(symbol: UShort): Boolean
+
     /** Get the field name for the given numerical id. */
     fun fieldNameForId(id: UShort): String?
 

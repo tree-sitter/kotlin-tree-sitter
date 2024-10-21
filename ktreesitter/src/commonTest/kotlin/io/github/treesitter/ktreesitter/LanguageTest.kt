@@ -45,6 +45,10 @@ class LanguageTest : FunSpec({
         language.isVisible(1U) shouldBe true
     }
 
+    test("isSupertype()") {
+        language.isSupertype(1U) shouldBe false
+    }
+
     test("fieldNameForId()") {
         language.fieldNameForId(1U).shouldNotBeNull()
     }

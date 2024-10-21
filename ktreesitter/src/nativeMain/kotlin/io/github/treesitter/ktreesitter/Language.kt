@@ -58,6 +58,10 @@ actual class Language @Throws(IllegalArgumentException::class) actual constructo
     actual fun isVisible(symbol: UShort) =
         ts_language_symbol_type(self, symbol) <= TSSymbolTypeAnonymous
 
+    /** Check if the node for the given numerical ID is a supertype. */
+    actual fun isSupertype(symbol: UShort) =
+        ts_language_symbol_type(self, symbol) == TSSymbolTypeSupertype
+
     /** Get the field name for the given numerical id. */
     actual fun fieldNameForId(id: UShort) = ts_language_field_name_for_id(self, id)?.toKString()
 
