@@ -111,12 +111,12 @@ void query_delete CRITICAL_ARGS(jlong query, jlong cursor) {
     ts_query_cursor_delete((TSQueryCursor *)cursor);
 }
 
-jint query_get_pattern_count(JNIEnv *env, jobject this) {
+jint query_native_pattern_count(JNIEnv *env, jobject this) {
     TSQuery *self = GET_POINTER(TSQuery, this, Query_self);
     return (jint)ts_query_pattern_count(self);
 }
 
-jint query_get_capture_count(JNIEnv *env, jobject this) {
+jint query_native_capture_count(JNIEnv *env, jobject this) {
     TSQuery *self = GET_POINTER(TSQuery, this, Query_self);
     return (jint)ts_query_capture_count(self);
 }
@@ -347,8 +347,8 @@ const JNINativeMethod Query_methods[] = {
     {"init", "(JLjava/lang/String;)J", (void *)&query_init},
     {"cursor", "()J", (void *)&query_cursor},
     {"delete", "(JJ)V", (void *)&query_delete},
-    {"getPatternCount", "()I", (void *)&query_get_pattern_count},
-    {"getCaptureCount", "()I", (void *)&query_get_capture_count},
+    {"nativePatternCount", "()I", (void *)&query_native_pattern_count},
+    {"nativeCaptureCount", "()I", (void *)&query_native_capture_count},
     {"getTimeoutMicros", "()J", (void *)&query_get_timeout_micros},
     {"setTimeoutMicros", "(J)V", (void *)&query_set_timeout_micros},
     {"getMatchLimit", "()I", (void *)&query_get_match_limit},

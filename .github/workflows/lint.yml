@@ -34,7 +34,7 @@ jobs:
           java-version: 17
       - name: Install ktlint
         run: |-
-          curl -sSLO https://github.com/pinterest/ktlint/releases/download/1.3.1/ktlint
+          curl -sSLO https://github.com/pinterest/ktlint/releases/download/1.6.0/ktlint
           chmod a+x ktlint && mv ktlint $RUNNER_TOOL_CACHE/ktlint
       - name: Run ktlint
         id: ktlint
@@ -59,8 +59,8 @@ jobs:
           java-version: 17
       - name: Install detekt
         run: |-
-          curl -sSLO https://github.com/detekt/detekt/releases/download/v1.23.7/detekt-cli-1.23.7-all.jar
-          mv detekt-cli-1.23.7-all.jar $RUNNER_TOOL_CACHE/detekt-cli.jar
+          curl -sSLO https://github.com/detekt/detekt/releases/download/v1.23.8/detekt-cli-1.23.8-all.jar
+          mv detekt-cli-1.23.8-all.jar $RUNNER_TOOL_CACHE/detekt-cli.jar
       - name: Run detekt
         id: detekt
         run: >-

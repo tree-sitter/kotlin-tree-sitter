@@ -8,6 +8,7 @@ import kotlin.jvm.JvmName
  * @property node The captured node.
  * @property name The name of the capture.
  */
+@ConsistentCopyVisibility
 data class QueryCapture internal constructor(
     @get:JvmName("node") val node: Node,
     @get:JvmName("name") val name: String

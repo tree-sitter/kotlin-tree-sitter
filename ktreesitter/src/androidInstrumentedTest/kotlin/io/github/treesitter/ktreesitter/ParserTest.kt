@@ -77,7 +77,7 @@ class ParserTest : FunSpec({
     }
 
     afterTest { (test, _) ->
-        when (test.name.testName) {
+        when (test.name.name) {
             "includedRanges" -> parser.includedRanges = emptyList()
             "timeoutMicros" -> parser.timeoutMicros = 0UL
             "logger" -> parser.logger = null

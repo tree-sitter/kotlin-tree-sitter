@@ -8,7 +8,7 @@ version = with(Properties()) {
 
 plugins {
     `java-gradle-plugin`
-    id("com.gradle.plugin-publish") version "1.2.1"
+    id("com.gradle.plugin-publish") version "1.3.1"
 }
 
 repositories {
@@ -20,7 +20,6 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-@Suppress("UnstableApiUsage")
 gradlePlugin {
     vcsUrl = "https://github.com/tree-sitter/kotlin-tree-sitter"
     website = "https://github.com/tree-sitter/kotlin-tree-sitter/tree/master/ktreesitter-plugin"

@@ -33,20 +33,20 @@ actual class Query @Throws(QueryError::class) actual constructor(
     /** The number of patterns in the query. */
     @get:JvmName("getPatternCount")
     actual val patternCount: UInt
-        @FastNative external get
+        get() = nativePatternCount().toUInt()
 
     /** The number of captures in the query. */
     @get:JvmName("getCaptureCount")
     actual val captureCount: UInt
-        @FastNative external get
+        get() = nativeCaptureCount().toUInt()
 
     init {
         RefCleaner(this, CleanAction(self, cursor))
 
-        predicates = List(patternCount.toInt()) { mutableListOf() }
-        settingList = List(patternCount.toInt()) { mutableMapOf() }
-        assertionList = List(patternCount.toInt()) { mutableMapOf() }
-        captureNames = MutableList(captureCount.toInt()) {
+        predicates = List(nativePatternCount()) { mutableListOf() }
+        settingList = List(nativePatternCount()) { mutableMapOf() }
+        assertionList = List(nativeCaptureCount()) { mutableMapOf() }
+        captureNames = MutableList(nativeCaptureCount()) {
             checkNotNull(captureNameForId(it)) {
                 "Failed to get capture name at index $it"
             }
@@ -529,6 +529,12 @@ actual class Query @Throws(QueryError::class) actual constructor(
     override fun toString() = "Query(language=$language, source=$source)"
 
     override fun close() = delete(self, cursor)
+
+    @FastNative
+    private external fun nativePatternCount(): Int
+
+    @FastNative
+    private external fun nativeCaptureCount(): Int
 
     @FastNative
     private external fun stringCount(): Int

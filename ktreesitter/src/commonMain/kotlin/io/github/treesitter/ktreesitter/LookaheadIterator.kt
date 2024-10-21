@@ -42,6 +42,8 @@ expect class LookaheadIterator : AbstractIterator<LookaheadIterator.Symbol> {
     /** Iterate over the symbol names. */
     fun symbolNames(): Sequence<String>
 
+    override fun computeNext()
+
     /** A class that pairs a symbol ID with its name. */
     class Symbol(id: UShort, name: String) {
         val id: UShort

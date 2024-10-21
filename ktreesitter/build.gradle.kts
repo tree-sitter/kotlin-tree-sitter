@@ -1,9 +1,7 @@
 import java.io.OutputStream.nullOutputStream
-import java.net.URI
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.kotlin.dsl.support.useToRun
-import org.jetbrains.dokka.base.DokkaBase
-import org.jetbrains.dokka.base.DokkaBaseConfiguration
+import org.jetbrains.dokka.gradle.tasks.DokkaGeneratePublicationTask
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
@@ -117,7 +115,6 @@ android {
     defaultConfig {
         minSdk = (property("sdk.version.min") as String).toInt()
         ndk {
-            moduleName = "ktreesitter"
             //noinspection ChromeOsAbiSupport
             abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
         }
@@ -214,31 +211,33 @@ signing {
     sign(publishing.publications)
 }
 
-tasks.dokkaHtml {
+dokka {
     val tmpDir = layout.buildDirectory.get().dir("tmp")
     val ref = System.getenv("GITHUB_SHA")?.subSequence(0, 7) ?: "master"
     val url = "https://github.com/tree-sitter/kotlin-tree-sitter/blob/$ref/ktreesitter"
 
-    inputs.file(file("README.md"))
-
     moduleName.set("KTreeSitter")
 
-    pluginConfiguration<DokkaBase, DokkaBaseConfiguration> {
+    pluginsConfiguration.html {
         footerMessage = "© 2024 tree-sitter"
         homepageLink = "https://tree-sitter.github.io/tree-sitter/"
-        customAssets = listOf(rootDir.resolve("gradle/logo-icon.svg"))
+        customAssets.from(rootDir.resolve("gradle/logo-icon.svg"))
     }
 
     dokkaSourceSets.configureEach {
         jdkVersion.set(17)
-        noStdlibLink.set(true)
         includes.from(tmpDir.file("README.md"))
-        externalDocumentationLink("https://kotlinlang.org/api/core/")
         sourceLink {
+            remoteUrl(url)
             localDirectory.set(projectDir)
-            remoteUrl.set(URI.create(url).toURL())
         }
     }
+}
+
+tasks.withType<DokkaGeneratePublicationTask> {
+    val tmpDir = layout.buildDirectory.get().dir("tmp")
+
+    inputs.file("README.md")
 
     doFirst {
         copy {
@@ -264,6 +263,8 @@ tasks.withType<KotlinJvmCompile>().configureEach {
     }
 }
 
+// TODO: replace with cmake
+@Suppress("DEPRECATION")
 tasks.withType<CInteropProcess>().configureEach {
     if (name.startsWith("cinteropTest")) return@configureEach
 
