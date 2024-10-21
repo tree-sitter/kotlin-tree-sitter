@@ -11,14 +11,14 @@ set(CMAKE_C_STANDARD 11)
 
 if(MSVC)
     add_compile_options(/W3 /wd4244)
-else(MSVC)
+else()
     set(CMAKE_C_VISIBILITY_PRESET hidden)
     add_compile_options(-Wall -Wextra
                         -Wno-unused-parameter
                         -Wno-cast-function-type
                         -Werror=incompatible-pointer-types
                         -Werror=implicit-function-declaration)
-endif(MSVC)
+endif()
 
 include_directories(${JNI_INCLUDE_DIRS}
                     ../tree-sitter/lib/src

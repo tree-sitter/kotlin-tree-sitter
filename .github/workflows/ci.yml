@@ -42,15 +42,12 @@ jobs:
           cache-dependency-path: |
             gradle/libs.versions.toml
             gradle/wrapper/gradle-wrapper.properties
-      - name: Cache Kotlin/Native prebuilt
-        uses: actions/cache@v4
+      - name: Set up Kotlin/Native
+        uses: ObserverOfTime/setup-konan-action@v1
         with:
-          path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
-          key: konan-${{runner.os}}-prebuilt-1.9
+          kotlin_version: 2.1.21
       - name: Generate files
         run: ./gradlew --no-daemon generateGrammarFiles
-        env:
-          KONAN_DATA_DIR: ${{runner.tool_cache}}/konan
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -113,14 +110,20 @@ jobs:
           cache-dependency-path: |
             gradle/libs.versions.toml
             gradle/wrapper/gradle-wrapper.properties
-      - name: Set up cross compilation
-        run: sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
-        if: matrix.platform == 'Linux'
-      - name: Restore Kotlin/Native prebuilt
-        uses: actions/cache/restore@v4
+      - name: Set up Kotlin/Native
+        uses: ObserverOfTime/setup-konan-action@v1
         with:
-          path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
-          key: konan-${{runner.os}}-prebuilt-1.9
+          kotlin_version: 2.1.21
+      - name: Set up cross compilation
+        if: matrix.platform == 'Linux'
+        run: |-
+          sudo apt-get update
+          sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
+      - name: Set up Ninja
+        if: matrix.platform == 'Android'
+        run: |-
+          sudo apt-get update
+          sudo apt-get install -qy ninja-build
       - name: Download generated files
         uses: actions/download-artifact@v4
         with:
@@ -131,30 +134,8 @@ jobs:
         run: .github/scripts/build-jni.${{matrix.os == 'windows-latest' && 'ps1' || 'sh'}}
         env:
           CMAKE_INSTALL_LIBDIR: lib/${{matrix.lib_platform}}/${{matrix.lib_arch}}
-      - name: Cache Kotlin/Native dependencies
-        id: cache-dependencies
-        uses: actions/cache@v4
-        if: matrix.platform != 'JVM' && matrix.platform != 'Android'
-        with:
-          path: ${{runner.tool_cache}}/konan/dependencies
-          key: konan-${{runner.os}}-dependencies
-      - name: Download Kotlin/Native dependencies
-        if: matrix.platform == 'macOS/iOS' && steps.cache-dependencies.outputs.cache-hit != 'true'
-        run: |-
-          mkdir -p "$RUNNER_TOOL_CACHE/konan/dependencies"
-          curl -LSs https://download-cdn.jetbrains.com/kotlin/native/$DEP.tar.gz | \
-            tar -xzf - -C "$RUNNER_TOOL_CACHE/konan/dependencies"
-        env:
-          DEP: apple-llvm-20200714-macos-aarch64-essentials
-      - name: Set up Ninja
-        if: matrix.platform == 'Android'
-        run: |-
-          sudo apt-get update
-          sudo apt-get install -y ninja-build
       - name: Run tests
         run: ./gradlew --no-daemon ${{matrix.targets}}
-        env:
-          KONAN_DATA_DIR: ${{runner.tool_cache}}/konan
       - name: Report test results
         uses: mikepenz/action-junit-report@v5
         if: matrix.platform == 'JVM' && !cancelled()

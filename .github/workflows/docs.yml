@@ -44,24 +44,22 @@ jobs:
           cache-dependency-path: |
             gradle/libs.versions.toml
             gradle/wrapper/gradle-wrapper.properties
-      - name: Restore Kotlin/Native prebuilt
-        uses: actions/cache/restore@v4
+      - name: Set up Kotlin/Native
+        uses: ObserverOfTime/setup-konan-action@v1
         with:
-          path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
-          key: konan-${{runner.os}}-prebuilt-1.9
-      - name: Restore Kotlin/Native dependencies
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{runner.tool_cache}}/konan/dependencies
-          key: konan-${{runner.os}}-dependencies
-      - name: Set up Ninja
+          kotlin_version: 2.1.21
+      - name: Set up cross compilation
+        if: matrix.platform == 'Linux'
         run: |-
           sudo apt-get update
-          sudo apt-get install -y ninja-build
+          sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
+      - name: Set up Ninja
+        if: matrix.platform == 'Android'
+        run: |-
+          sudo apt-get update
+          sudo apt-get install -qy ninja-build
       - name: Build documentation
-        run: ./gradlew --no-daemon generateFiles :ktreesitter:dokkaHtml
-        env:
-          KONAN_DATA_DIR: ${{runner.tool_cache}}/konan
+        run: ./gradlew --no-daemon generateFiles :ktreesitter:dokkaGeneratePublicationHtml
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

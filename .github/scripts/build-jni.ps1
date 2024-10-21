@@ -2,7 +2,7 @@
 
 & cmake -S ktreesitter -B ktreesitter/.cmake/build `
         -DCMAKE_VERBOSE_MAKEFILE=ON `
-         -DCMAKE_INSTALL_PREFIX=ktreesitter/src/jvmMain/resources `
+        -DCMAKE_INSTALL_PREFIX=ktreesitter/src/jvmMain/resources `
         -DCMAKE_INSTALL_BINDIR="$env:CMAKE_INSTALL_LIBDIR"
 & cmake --build ktreesitter/.cmake/build --config Debug
 & cmake --install ktreesitter/.cmake/build --config Debug
