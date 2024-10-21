@@ -71,7 +71,7 @@ actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal
         }
     }
 
-    override fun computeNext() = if (nativeNext()) {
+    actual override fun computeNext() = if (nativeNext()) {
         setNext(Symbol(currentSymbol, currentSymbolName))
     } else {
         done()

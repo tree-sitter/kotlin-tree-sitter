@@ -60,7 +60,7 @@ kotlin {
     }.forEach { target ->
         target.compilations.configureEach {
             cinterops.create(grammar.interopName.get()) {
-                defFileProperty.set(generateTask.interopFile.asFile)
+                definitionFile.set(generateTask.interopFile)
                 includeDirs.allHeaders(grammarDir.resolve("bindings/c"))
                 extraOpts("-libraryPath", libsDir.dir(konanTarget.name))
                 tasks.getByName(interopProcessingTaskName).mustRunAfter(generateTask)
@@ -102,7 +102,6 @@ android {
     defaultConfig {
         minSdk = (property("sdk.version.min") as String).toInt()
         ndk {
-            moduleName = grammar.libraryName.get()
             //noinspection ChromeOsAbiSupport
             abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
         }
@@ -121,6 +120,8 @@ android {
     }
 }
 
+// TODO: replace with cmake
+@Suppress("DEPRECATION")
 tasks.withType<CInteropProcess>().configureEach {
     if (name.startsWith("cinteropTest")) return@configureEach
 

@@ -20,7 +20,6 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-@Suppress("UnstableApiUsage")
 gradlePlugin {
     vcsUrl = "https://github.com/tree-sitter/kotlin-tree-sitter"
     website = "https://github.com/tree-sitter/kotlin-tree-sitter/tree/master/ktreesitter-plugin"

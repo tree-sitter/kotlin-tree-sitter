@@ -1,6 +1,7 @@
 ### Gradle ###
 .gradle/
 build/
+.kotlin/
 kotlin-js-store/
 dependency-graph-reports/
 local.properties

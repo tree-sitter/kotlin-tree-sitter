@@ -79,7 +79,7 @@ actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal
         }
     }
 
-    override fun computeNext() = if (ts_lookahead_iterator_next(self)) {
+    actual override fun computeNext() = if (ts_lookahead_iterator_next(self)) {
         val id = ts_lookahead_iterator_current_symbol(self)
         val name = ts_lookahead_iterator_current_symbol_name(self)
         setNext(Symbol(id, name!!.toKString()))

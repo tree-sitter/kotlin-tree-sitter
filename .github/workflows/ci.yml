@@ -44,7 +44,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
-          key: konan-${{runner.os}}-prebuilt-1.9
+          key: konan-${{runner.os}}-prebuilt-2.0
       - name: Generate files
         run: ./gradlew --no-daemon generateGrammarFiles
         env:
@@ -118,7 +118,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
-          key: konan-${{runner.os}}-prebuilt-1.9
+          key: konan-${{runner.os}}-prebuilt-2.0
       - name: Download generated files
         uses: actions/download-artifact@v4
         with:

@@ -139,7 +139,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
-          key: konan-${{runner.os}}-prebuilt-1.9
+          key: konan-${{runner.os}}-prebuilt-2.0
       - name: Restore Kotlin/Native dependencies
         uses: actions/cache/restore@v4
         if: matrix.platform != 'JVM' && matrix.platform != 'Android'
