@@ -238,6 +238,16 @@ actual class Node internal constructor(
     @Throws(IndexOutOfBoundsException::class)
     actual external fun fieldNameForChild(index: UInt): String?
 
+    /**
+     * Get the field name of this node’s _named_ child at the given index, if available.
+     *
+     * @throws [IndexOutOfBoundsException] If the index exceeds the [child count][childCount].
+     */
+    @FastNative
+    @JvmName("fieldNameForNamedChild")
+    @Throws(IndexOutOfBoundsException::class)
+    actual external fun fieldNameForNamedChild(index: UInt): String?
+
     /** Get the child of the node that contains the given descendant, if any. */
     @FastNative
     actual external fun childContainingDescendant(descendant: Node): Node?
@@ -276,7 +286,7 @@ actual class Node internal constructor(
      * Edit this node to keep it in-sync with source code that has been edited.
      *
      * This method is only rarely needed. When you edit a syntax tree via
-     * [Tree.edit], all of the nodes that you retrieve from the tree afterward
+     * [Tree.edit], all the nodes that you retrieve from the tree afterward
      * will already reflect the edit. You only need to use this when you have a
      * specific Node instance that you want to keep and continue to use after an edit.
      */

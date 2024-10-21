@@ -256,6 +256,17 @@ actual class Node internal constructor(
         throw IndexOutOfBoundsException("Child index $index is out of bounds")
     }
 
+    /**
+     * Get the field name of this node’s _named_ child at the given index, if available.
+     *
+     * @throws [IndexOutOfBoundsException] If the index exceeds the [child count][childCount].
+     */
+    @Throws(IndexOutOfBoundsException::class)
+    actual fun fieldNameForNamedChild(index: UInt): String? {
+        if (index < childCount) return ts_node_field_name_for_named_child(self, index)?.toKString()
+        throw IndexOutOfBoundsException("Child index $index is out of bounds")
+    }
+
     /** Get the child of the node that contains the given descendant, if any. */
     actual fun childContainingDescendant(descendant: Node) =
         ts_node_child_containing_descendant(self, descendant.self).convert(tree)
@@ -298,7 +309,7 @@ actual class Node internal constructor(
      * Edit this node to keep it in-sync with source code that has been edited.
      *
      * This method is only rarely needed. When you edit a syntax tree via
-     * [Tree.edit], all of the nodes that you retrieve from the tree afterward
+     * [Tree.edit], all the nodes that you retrieve from the tree afterward
      * will already reflect the edit. You only need to use this when you have a
      * specific Node instance that you want to keep and continue to use after an edit.
      */

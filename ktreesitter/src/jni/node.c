@@ -261,6 +261,20 @@ jstring JNICALL node_field_name_for_child(JNIEnv *env, jobject this, jint index)
     return field_name ? (*env)->NewStringUTF(env, field_name) : NULL;
 }
 
+jstring JNICALL node_field_name_for_named_child(JNIEnv *env, jobject this, jint index) {
+    TSNode self = unmarshal_node(env, this);
+    if (ts_node_child_count(self) <= (uint32_t)index) {
+        const char *fmt = "Child index %u is out of bounds";
+        char buffer[40] = {0};
+        sprintf_s(buffer, 40, fmt, (uint32_t)index);
+        THROW(IndexOutOfBoundsException, (const char *)buffer);
+        return NULL;
+    }
+
+    const char *field_name = ts_node_field_name_for_named_child(self, (uint32_t)index);
+    return field_name ? (*env)->NewStringUTF(env, field_name) : NULL;
+}
+
 jobject JNICALL node_child_containing_descendant(JNIEnv *env, jobject this, jobject descendant) {
     TSNode self = unmarshal_node(env, this);
     TSNode other = unmarshal_node(env, descendant);
@@ -374,6 +388,7 @@ const JNINativeMethod Node_methods[] = {
      (void *)&node_child_by_field_name},
     {"childrenByFieldId", "(S)Ljava/util/List;", (void *)&node_children_by_field_id},
     {"fieldNameForChild", "(I)Ljava/lang/String;", (void *)&node_field_name_for_child},
+    {"fieldNameForNamedChild", "(I)Ljava/lang/String;", (void *)&node_field_name_for_named_child},
     {"childContainingDescendant", "(L" PACKAGE "Node;)L" PACKAGE "Node;",
      (void *)&node_child_containing_descendant},
     {"descendant", "(II)L" PACKAGE "Node;", (void *)&node_descendant__bytes},
