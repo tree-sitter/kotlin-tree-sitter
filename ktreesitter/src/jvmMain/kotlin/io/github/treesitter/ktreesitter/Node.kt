@@ -245,7 +245,18 @@ actual class Node internal constructor(
     actual external fun fieldNameForNamedChild(index: UInt): String?
 
     /** Get the child of the node that contains the given descendant, if any. */
+    @Deprecated(
+        "This method will not return a direct descendant",
+        ReplaceWith("childWithDescendant(descendant)", "io.github.treesitter.ktreesitter.Node")
+    )
     actual external fun childContainingDescendant(descendant: Node): Node?
+
+    /**
+     * Get the node that contains the given descendant, if any.
+     *
+     * @since 0.24.0
+     */
+    actual external fun childWithDescendant(descendant: Node): Node?
 
     /**
      * Get the smallest node within this node

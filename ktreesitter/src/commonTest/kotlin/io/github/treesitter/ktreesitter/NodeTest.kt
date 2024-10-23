@@ -174,9 +174,16 @@ class NodeTest : FunSpec({
         rootNode.child(0U)!!.fieldNameForNamedChild(2U).shouldBeNull()
     }
 
+    @Suppress("DEPRECATION")
     test("childContainingDescendant()") {
         val descendant = rootNode.child(0U)!!.child(0U)!!
         val child = rootNode.childContainingDescendant(descendant)
+        child?.type shouldBe "class_declaration"
+    }
+
+    test("childWithDescendant()") {
+        val descendant = rootNode.child(0U)!!
+        val child = rootNode.childWithDescendant(descendant)
         child?.type shouldBe "class_declaration"
     }
 

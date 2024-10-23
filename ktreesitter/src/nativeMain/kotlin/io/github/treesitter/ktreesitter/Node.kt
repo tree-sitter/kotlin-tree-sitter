@@ -269,8 +269,20 @@ actual class Node internal constructor(
     }
 
     /** Get the child of the node that contains the given descendant, if any. */
+    @Deprecated(
+        "This method will not return a direct descendant",
+        ReplaceWith("childWithDescendant(descendant)", "io.github.treesitter.ktreesitter.Node")
+    )
     actual fun childContainingDescendant(descendant: Node) =
         ts_node_child_containing_descendant(self, descendant.self).convert(tree)
+
+    /**
+     * Get the node that contains the given descendant, if any.
+     *
+     * @since 0.24.0
+     */
+    actual fun childWithDescendant(descendant: Node) =
+        ts_node_child_with_descendant(self, descendant.self).convert(tree)
 
     /**
      * Get the smallest node within this node

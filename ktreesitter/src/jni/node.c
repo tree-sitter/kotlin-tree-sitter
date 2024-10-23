@@ -285,6 +285,16 @@ jobject JNICALL node_child_containing_descendant(JNIEnv *env, jobject this, jobj
     return marshal_node(env, result, tree);
 }
 
+jobject JNICALL node_child_with_descendant(JNIEnv *env, jobject this, jobject descendant) {
+    TSNode self = unmarshal_node(env, this);
+    TSNode other = unmarshal_node(env, descendant);
+    TSNode result = ts_node_child_with_descendant(self, other);
+    if (ts_node_is_null(result))
+        return NULL;
+    jobject tree = GET_FIELD(Object, this, Node_tree);
+    return marshal_node(env, result, tree);
+}
+
 jobject JNICALL node_descendant__bytes(JNIEnv *env, jobject this, jint start, jint end) {
     TSNode self = unmarshal_node(env, this);
     TSNode result = ts_node_descendant_for_byte_range(self, (uint32_t)start, (uint32_t)end);
@@ -391,6 +401,8 @@ const JNINativeMethod Node_methods[] = {
     {"fieldNameForNamedChild", "(I)Ljava/lang/String;", (void *)&node_field_name_for_named_child},
     {"childContainingDescendant", "(L" PACKAGE "Node;)L" PACKAGE "Node;",
      (void *)&node_child_containing_descendant},
+    {"childWithDescendant", "(L" PACKAGE "Node;)L" PACKAGE "Node;",
+     (void *)&node_child_with_descendant},
     {"descendant", "(II)L" PACKAGE "Node;", (void *)&node_descendant__bytes},
     {"descendant", "(L" PACKAGE "Point;L" PACKAGE "Point;)L" PACKAGE "Node;",
      (void *)&node_descendant__points},
