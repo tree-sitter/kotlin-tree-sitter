@@ -260,6 +260,7 @@ actual class Node internal constructor(
      * Get the field name of this node’s _named_ child at the given index, if available.
      *
      * @throws [IndexOutOfBoundsException] If the index exceeds the [child count][childCount].
+     * @since 0.24.0
      */
     @Throws(IndexOutOfBoundsException::class)
     actual fun fieldNameForNamedChild(index: UInt): String? {

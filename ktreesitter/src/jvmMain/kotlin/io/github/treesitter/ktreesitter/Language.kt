@@ -59,7 +59,11 @@ actual class Language @Throws(IllegalArgumentException::class) actual constructo
     @JvmName("isVisible")
     actual external fun isVisible(symbol: UShort): Boolean
 
-    /** Check if the node for the given numerical ID is a supertype. */
+    /**
+     * Check if the node for the given numerical ID is a supertype.
+     *
+     * @since 0.24.0
+     */
     @JvmName("isSupertype")
     actual external fun isSupertype(symbol: UShort): Boolean
 

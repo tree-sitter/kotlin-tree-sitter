@@ -353,6 +353,8 @@ actual class Query @Throws(QueryError::class) actual constructor(
      * execution should be allowed to take before halting.
      *
      * Default: `0`
+     *
+     * @since 0.23.0
      */
     actual var timeoutMicros: ULong
         get() = ts_query_cursor_timeout_micros(cursor)
@@ -561,6 +563,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
      *
      * @throws [IndexOutOfBoundsException]
      *  If the index exceeds the [pattern count][patternCount].
+     * @since 0.23.0
      */
     @Throws(IndexOutOfBoundsException::class)
     actual fun endByteForPattern(index: UInt): UInt {

@@ -6,7 +6,7 @@ import dalvik.annotation.optimization.FastNative
 /**
  * A class that represents a set of patterns which match nodes in a syntax tree.
  *
- * __NOTE__: If you're targeting Android SDK level < 33,
+ * __NOTE:__ If you're targeting Android SDK level < 33,
  * you must `use` or [close] the instance to free up resources.
  *
  * @constructor
@@ -272,6 +272,8 @@ actual class Query @Throws(QueryError::class) actual constructor(
      * execution should be allowed to take before halting.
      *
      * Default: `0`
+     *
+     * @since 0.23.0
      */
     @get:JvmName("getTimeoutMicros")
     @set:JvmName("setTimeoutMicros")
@@ -477,6 +479,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
      *
      * @throws [IndexOutOfBoundsException]
      *  If the index exceeds the [pattern count][patternCount].
+     * @since 0.23.0
      */
     @FastNative
     @JvmName("endByteForPattern")

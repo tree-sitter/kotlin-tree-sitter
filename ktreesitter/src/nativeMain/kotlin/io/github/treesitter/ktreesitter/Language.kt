@@ -58,7 +58,11 @@ actual class Language @Throws(IllegalArgumentException::class) actual constructo
     actual fun isVisible(symbol: UShort) =
         ts_language_symbol_type(self, symbol) <= TSSymbolTypeAnonymous
 
-    /** Check if the node for the given numerical ID is a supertype. */
+    /**
+     * Check if the node for the given numerical ID is a supertype.
+     *
+     * @since 0.24.0
+     */
     actual fun isSupertype(symbol: UShort) =
         ts_language_symbol_type(self, symbol) == TSSymbolTypeSupertype
 

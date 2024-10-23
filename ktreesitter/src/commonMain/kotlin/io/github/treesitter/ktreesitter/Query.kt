@@ -20,6 +20,8 @@ expect class Query @Throws(QueryError::class) constructor(language: Language, so
      * execution should be allowed to take before halting.
      *
      * Default: `0`
+     *
+     * @since 0.23.0
      */
     var timeoutMicros: ULong
 
@@ -160,6 +162,7 @@ expect class Query @Throws(QueryError::class) constructor(language: Language, so
      *
      * @throws [IndexOutOfBoundsException]
      *  If the index exceeds the [pattern count][patternCount].
+     * @since 0.23.0
      */
     @Throws(IndexOutOfBoundsException::class)
     fun endByteForPattern(index: UInt): UInt
