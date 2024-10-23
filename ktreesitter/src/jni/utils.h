@@ -69,6 +69,7 @@ typedef struct {
     jfieldID Parser$LogType_LEX;
     jfieldID Parser$LogType_PARSE;
     jfieldID Parser_includedRanges;
+    jfieldID Parser_internalCancellationFlag;
     jfieldID Parser_language;
     jfieldID Parser_logger;
     jfieldID Parser_self;
@@ -93,6 +94,7 @@ typedef struct {
     jfieldID Tree_self;
     jfieldID Tree_source;
     jfieldID UInt_data;
+    jfieldID ULong_data;
 } FieldCache;
 
 typedef struct {
@@ -115,8 +117,6 @@ typedef struct {
     jmethodID QueryMatch_init;
     jmethodID Range_init;
     jmethodID Tree_init;
-    jmethodID UInt_constructor;
-    jmethodID UInt_box;
 } MethodCache;
 
 typedef struct {
@@ -147,6 +147,7 @@ typedef struct {
     jclass Tree;
     jclass TreeCursor;
     jclass UInt;
+    jclass ULong;
 } ClassCache;
 
 extern FieldCache global_field_cache;
