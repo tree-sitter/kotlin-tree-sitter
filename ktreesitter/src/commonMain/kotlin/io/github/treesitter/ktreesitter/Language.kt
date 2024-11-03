@@ -22,6 +22,13 @@ expect class Language @Throws(IllegalArgumentException::class) constructor(langu
     /** The number of distinct field names in this language. */
     val fieldCount: UInt
 
+    /**
+     * Get another reference to the language.
+     *
+     * @since 0.24.0
+     */
+    fun copy(): Language
+
     /** Get the node type for the given numerical ID. */
     fun symbolName(symbol: UShort): String?
 

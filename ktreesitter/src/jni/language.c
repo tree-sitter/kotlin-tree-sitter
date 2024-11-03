@@ -1,5 +1,9 @@
 #include "utils.h"
 
+jlong JNICALL language_copy CRITICAL_ARGS(jlong self) {
+    return (jlong)ts_language_copy((TSLanguage *)self);
+}
+
 jint JNICALL language_get_version(JNIEnv *env, jobject this) {
     TSLanguage *self = GET_POINTER(TSLanguage, this, Language_self);
     return (jint)ts_language_version(self);
@@ -88,6 +92,7 @@ void JNICALL language_check_version(JNIEnv *env, jobject this) {
 }
 
 const JNINativeMethod Language_methods[] = {
+    {"copy", "(J)J", (void *)&language_copy},
     {"getVersion", "()I", (void *)&language_get_version},
     {"getSymbolCount", "()I", (void *)&language_get_symbol_count},
     {"getStateCount", "()I", (void *)&language_get_state_count},

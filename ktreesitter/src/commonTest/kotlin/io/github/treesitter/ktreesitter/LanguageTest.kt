@@ -74,7 +74,7 @@ class LanguageTest : FunSpec({
     }
 
     test("equals()") {
-        Language(TreeSitterJava.language()) shouldBe Language(TreeSitterJava.language())
+        Language(TreeSitterJava.language()) shouldBe language.copy()
     }
 
     test("hashCode()") {
@@ -82,6 +82,6 @@ class LanguageTest : FunSpec({
     }
 
     test("toString()") {
-        language.toString() shouldMatch Regex("""Language\(id=0x[0-9a-z]+, version=14\)""")
+        language.toString() shouldMatch Regex("""Language\(id=0x[0-9a-f]+, version=14\)""")
     }
 })

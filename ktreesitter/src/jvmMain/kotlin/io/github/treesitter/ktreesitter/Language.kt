@@ -39,6 +39,13 @@ actual class Language @Throws(IllegalArgumentException::class) actual constructo
     actual val fieldCount: UInt
         external get
 
+    /**
+     * Get another reference to the language.
+     *
+     * @since 0.24.0
+     */
+    actual fun copy() = Language(copy(self))
+
     /** Get the node type for the given numerical ID. */
     @JvmName("symbolName")
     actual external fun symbolName(symbol: UShort): String?
@@ -119,6 +126,9 @@ actual class Language @Throws(IllegalArgumentException::class) actual constructo
     private external fun checkVersion()
 
     private companion object {
+        @JvmStatic
+        private external fun copy(self: Long): Long
+
         init {
             NativeUtils.loadLibrary()
         }
