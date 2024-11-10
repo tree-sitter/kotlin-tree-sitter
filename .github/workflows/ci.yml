@@ -149,7 +149,7 @@ jobs:
         env:
           KONAN_DATA_DIR: ${{runner.tool_cache}}/konan
       - name: Report test results
-        uses: mikepenz/action-junit-report@v4
+        uses: mikepenz/action-junit-report@v5
         if: matrix.platform == 'JVM' && !cancelled()
         with:
           annotate_only: true
