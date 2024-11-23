@@ -57,6 +57,8 @@ static const char *parse_callback(void *payload, uint32_t byte_index, TSPoint po
     (*env)->DeleteLocalRef(env, point);
     if ((*env)->ExceptionCheck(env))
         return NULL;
+    if (char_sequence == NULL)
+        return NULL;
 
     jstring string = (jstring)CALL_METHOD_NO_ARGS(Object, char_sequence, CharSequence_toString);
     (*env)->DeleteLocalRef(env, char_sequence);

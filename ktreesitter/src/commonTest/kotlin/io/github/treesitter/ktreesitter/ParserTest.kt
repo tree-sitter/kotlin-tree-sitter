@@ -66,7 +66,8 @@ class ParserTest : FunSpec({
     test("parse(callback)") {
         val source = "class Foo {}"
         val tree = parser.parse { byte, _ ->
-            source.subSequence(byte.toInt(), minOf(byte.toInt() + 1, source.length))
+            val end = minOf(byte.toInt() * 2, source.length)
+            source.subSequence(byte.toInt(), end).ifEmpty { null }
         }
         tree.text().shouldBeNull()
         tree.rootNode.type shouldBe "program"
