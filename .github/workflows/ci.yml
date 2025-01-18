@@ -8,12 +8,14 @@ on:
       - "**/*.kts"
       - "**/jni/*"
       - gradle/**
+      - gradle.properties
   pull_request:
     paths:
       - "/*.kt"
       - "**/*.kts"
       - "**/jni/*"
       - gradle/**
+      - gradle.properties
 
 concurrency:
   cancel-in-progress: true
@@ -144,6 +146,11 @@ jobs:
             tar -xzf - -C "$RUNNER_TOOL_CACHE/konan/dependencies"
         env:
           DEP: apple-llvm-20200714-macos-aarch64-essentials
+      - name: Set up Ninja
+        if: matrix.platform == 'Android'
+        run: |-
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
       - name: Run tests
         run: ./gradlew --no-daemon ${{matrix.targets}}
         env:

@@ -54,6 +54,10 @@ jobs:
         with:
           path: ${{runner.tool_cache}}/konan/dependencies
           key: konan-${{runner.os}}-dependencies
+      - name: Set up Ninja
+        run: |-
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
       - name: Build documentation
         run: ./gradlew --no-daemon generateFiles :ktreesitter:dokkaHtml
         env:

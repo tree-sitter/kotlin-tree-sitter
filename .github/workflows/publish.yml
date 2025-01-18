@@ -153,6 +153,11 @@ jobs:
           path: ktreesitter/src/jvmMain/resources/lib
           pattern: ktreesitter-lib-*
           merge-multiple: true
+      - name: Set up Ninja
+        if: matrix.platform == 'Android'
+        run: |-
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
       - name: Build packages
         run: ./gradlew --no-daemon ${{matrix.targets}}
         env:
