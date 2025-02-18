@@ -281,6 +281,8 @@ tasks.withType<CInteropProcess>().configureEach {
             write("-I" + treesitterDir.resolve("lib/src").unixPath + "\n")
             write("-I" + treesitterDir.resolve("lib/include").unixPath + "\n")
             write("-DTREE_SITTER_HIDE_SYMBOLS\n")
+            write("-D_DEFAULT_SOURCE\n")
+            write("-D_POSIX_C_SOURCE=200112L\n")
             write("-fvisibility=hidden\n")
             write("-std=c11\n")
             write("-O2\n")

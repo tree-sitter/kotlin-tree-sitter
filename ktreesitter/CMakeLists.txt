@@ -24,7 +24,7 @@ include_directories(${JNI_INCLUDE_DIRS}
                     ../tree-sitter/lib/src
                     ../tree-sitter/lib/include)
 
-add_compile_definitions(TREE_SITTER_HIDE_SYMBOLS)
+add_compile_definitions(TREE_SITTER_HIDE_SYMBOLS _DEFAULT_SOURCE _POSIX_C_SOURCE=200112L)
 
 add_library(ktreesitter SHARED
             ./src/jni/language.c
