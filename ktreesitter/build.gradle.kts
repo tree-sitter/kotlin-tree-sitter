@@ -4,12 +4,24 @@ import org.gradle.kotlin.dsl.support.useToRun
 import org.jetbrains.dokka.gradle.tasks.DokkaGeneratePublicationTask
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
-import org.jetbrains.kotlin.konan.target.PlatformManager
 
 inline val File.unixPath: String
     get() = if (!os.isWindows) path else path.replace("\\", "/")
+
+fun KotlinNativeTarget.treesitter() {
+    compilations.configureEach {
+        cinterops.register("treesitter") {
+            val srcDir = treesitterDir.resolve("lib/src")
+            val includeDir = treesitterDir.resolve("lib/include")
+            includeDirs.allHeaders(srcDir, includeDir)
+            includeDirs.headerFilterOnly(includeDir)
+            extraOpts("-libraryPath", libsDir.dir(konanTarget.name))
+        }
+    }
+}
 
 val os: OperatingSystem = OperatingSystem.current()
 val libsDir = layout.buildDirectory.get().dir("libs")
@@ -23,6 +35,7 @@ plugins {
     alias(libs.plugins.kotlin.mpp)
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotest)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.dokka)
 }
 
@@ -40,30 +53,15 @@ kotlin {
         publishLibraryVariants("release")
     }
 
-    when {
-        os.isLinux -> listOf(linuxX64(), linuxArm64())
-        os.isWindows -> listOf(mingwX64())
-        os.isMacOsX -> listOf(
-            macosArm64(),
-            macosX64(),
-            iosArm64(),
-            iosSimulatorArm64()
-        )
-        else -> {
-            val arch = System.getProperty("os.arch")
-            throw GradleException("Unsupported platform: $os ($arch)")
-        }
-    }.forEach { target ->
-        target.compilations.configureEach {
-            cinterops.create("treesitter") {
-                val srcDir = treesitterDir.resolve("lib/src")
-                val includeDir = treesitterDir.resolve("lib/include")
-                includeDirs.allHeaders(srcDir, includeDir)
-                includeDirs.headerFilterOnly(includeDir)
-                extraOpts("-libraryPath", libsDir.dir(konanTarget.name))
-            }
-        }
-    }
+    linuxX64 { treesitter() }
+    linuxArm64 { treesitter() }
+    mingwX64 { treesitter() }
+    macosArm64 { treesitter() }
+    macosX64 { treesitter() }
+    iosArm64 { treesitter() }
+    iosSimulatorArm64 { treesitter() }
+
+    applyDefaultHierarchyTemplate()
 
     jvmToolchain(17)
 
@@ -93,6 +91,7 @@ kotlin {
         jvmTest {
             dependencies {
                 implementation(libs.bundles.kotest.junit)
+                implementation(libs.kotest.symbolprocessor)
             }
         }
 
@@ -145,7 +144,7 @@ android {
     }
 }
 
-tasks.create<Jar>("javadocJar") {
+tasks.register<Jar>("javadocJar") {
     group = "documentation"
     archiveClassifier.set("javadoc")
     from(files(rootDir.resolve("README.md")))
@@ -274,11 +273,8 @@ tasks.withType<CInteropProcess>().configureEach {
         "${konanTarget.family.staticPrefix}tree-sitter.${konanTarget.family.staticSuffix}"
     ).asFile
     val objectFile = treesitterDir.resolve("lib.o")
-    val loader = PlatformManager(konanHome.get(), false, konanDataDir.orNull).loader(konanTarget)
 
     doFirst {
-        if (!File(loader.absoluteTargetToolchain).isDirectory) loader.downloadDependencies()
-
         val argsFile = File.createTempFile("args", null)
         argsFile.deleteOnExit()
         argsFile.writer().useToRun {
