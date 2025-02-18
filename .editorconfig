@@ -25,6 +25,9 @@ indent_size = 2
 [*.{bat,ps1}]
 end_of_line = crlf
 
+[*.toml]
+max_line_length = 120
+
 # noinspection EditorConfigKeyCorrectness
 [*.{kt,kts}]
 ktlint_code_style = android_studio

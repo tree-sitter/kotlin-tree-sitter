@@ -2,11 +2,22 @@ import java.io.OutputStream.nullOutputStream
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.kotlin.dsl.support.useToRun
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
-import org.jetbrains.kotlin.konan.target.PlatformManager
 
 inline val File.unixPath: String
     get() = if (!os.isWindows) path else path.replace("\\", "/")
+
+fun KotlinNativeTarget.treesitterJava() {
+    compilations.configureEach {
+        cinterops.create("treesitterJava") {
+            definitionFile.set(generateTask.interopFile)
+            includeDirs.allHeaders(grammarDir.resolve("bindings/c"))
+            extraOpts("-libraryPath", libsDir.dir(konanTarget.name))
+            tasks.getByName(interopProcessingTaskName).mustRunAfter(generateTask)
+        }
+    }
+}
 
 val os: OperatingSystem = OperatingSystem.current()
 val libsDir = layout.buildDirectory.get().dir("libs")
@@ -40,29 +51,15 @@ kotlin {
         publishLibraryVariants("release")
     }
 
-    when {
-        os.isLinux -> listOf(linuxX64(), linuxArm64())
-        os.isWindows -> listOf(mingwX64())
-        os.isMacOsX -> listOf(
-            macosArm64(),
-            macosX64(),
-            iosArm64(),
-            iosSimulatorArm64()
-        )
-        else -> {
-            val arch = System.getProperty("os.arch")
-            throw GradleException("Unsupported platform: $os ($arch)")
-        }
-    }.forEach { target ->
-        target.compilations.configureEach {
-            cinterops.create(grammar.interopName.get()) {
-                definitionFile.set(generateTask.interopFile)
-                includeDirs.allHeaders(grammarDir.resolve("bindings/c"))
-                extraOpts("-libraryPath", libsDir.dir(konanTarget.name))
-                tasks.getByName(interopProcessingTaskName).mustRunAfter(generateTask)
-            }
-        }
-    }
+    linuxX64 { treesitterJava() }
+    linuxArm64 { treesitterJava() }
+    mingwX64 { treesitterJava() }
+    macosArm64 { treesitterJava() }
+    macosX64 { treesitterJava() }
+    iosArm64 { treesitterJava() }
+    iosSimulatorArm64 { treesitterJava() }
+
+    applyDefaultHierarchyTemplate()
 
     jvmToolchain(17)
 
@@ -132,11 +129,8 @@ tasks.withType<CInteropProcess>().configureEach {
     val objectFiles = grammarFiles.map {
         srcDir.resolve(it.nameWithoutExtension + ".o").path
     }.toTypedArray()
-    val loader = PlatformManager(konanHome.get(), false, konanDataDir.orNull).loader(konanTarget)
 
     doFirst {
-        if (!File(loader.absoluteTargetToolchain).isDirectory) loader.downloadDependencies()
-
         val argsFile = File.createTempFile("args", null)
         argsFile.deleteOnExit()
         argsFile.writer().useToRun {
@@ -169,7 +163,7 @@ tasks.withType<CInteropProcess>().configureEach {
     outputs.file(libFile)
 }
 
-tasks.create<Jar>("javadocJar") {
+tasks.register<Jar>("javadocJar") {
     group = "documentation"
     archiveClassifier.set("javadoc")
 }
