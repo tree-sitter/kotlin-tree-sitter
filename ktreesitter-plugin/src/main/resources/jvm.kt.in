@@ -20,7 +20,6 @@ actual object @CLASS@ {
     }
 
 @METHODS@
-
     @JvmStatic
     @Suppress("ConvertToStringTemplate")
     @Throws(UnsupportedOperationException::class)
