@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -24,8 +25,6 @@ public abstract class GrammarFilesTask extends DefaultTask {
     private File grammarDir;
 
     private String grammarName;
-
-    private File[] grammarFiles;
 
     private String interopName;
 
@@ -61,18 +60,6 @@ public abstract class GrammarFilesTask extends DefaultTask {
     /** Set the name of the grammar. */
     public final void setGrammarName(String grammarName) {
         this.grammarName = grammarName;
-    }
-
-    /** Get the source files of the grammar. */
-    @InputFiles
-    @PathSensitive(PathSensitivity.RELATIVE)
-    public final File[] getGrammarFiles() {
-        return grammarFiles;
-    }
-
-    /** Set the source files of the grammar. */
-    public final void setGrammarFiles(File[] grammarFiles) {
-        this.grammarFiles = grammarFiles;
     }
 
     /** Get the name of the C interop def file. */
@@ -281,9 +268,8 @@ public abstract class GrammarFilesTask extends DefaultTask {
 
     private void generateCmakeLists(Path srcDir) throws GradleException {
         var jniBinding = srcDir.resolve("jni").resolve("binding.c");
-        var files = Arrays.stream(grammarFiles).map(file -> relative(file.toPath()).toString());
         var includeDir = relative(grammarDir.toPath().resolve("bindings/c"));
-        var sources = relative(jniBinding) + " " + String.join(" ", files.toList());
+        var sources = String.format("%s %s", relative(jniBinding), srcFiles());
         var template = readResource("CMakeLists.txt.in")
             .replace("@LIBRARY@", libraryName)
             .replace("@INCLUDE@", includeDir.toString())
@@ -303,6 +289,15 @@ public abstract class GrammarFilesTask extends DefaultTask {
 
     private Path relative(Path file) {
         return getGeneratedSrc().get().getAsFile().toPath().getParent().relativize(file);
+    }
+
+    private String srcFiles() {
+        var grammarSrcDir = grammarDir.toPath().resolve("src");
+        var scannerFile = grammarSrcDir.resolve("scanner.c");
+        if (!scannerFile.toFile().exists()) {
+            return grammarSrcDir.resolve("parser.c").toString();
+        }
+        return String.format("%s %s", grammarSrcDir.resolve("parser.c"), scannerFile);
     }
 
     private String readResource(String file) throws GradleException {

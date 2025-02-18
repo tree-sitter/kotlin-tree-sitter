@@ -28,10 +28,6 @@ grammar {
     grammarName = project.name
     className = "TreeSitterJava"
     packageName = "io.github.treesitter.ktreesitter.java"
-    files = arrayOf(
-        // grammarDir.resolve("src/scanner.c"),
-        grammarDir.resolve("src/parser.c")
-    )
 }
 
 val generateTask = tasks.generateGrammarFiles.get()
@@ -125,13 +121,16 @@ android {
 tasks.withType<CInteropProcess>().configureEach {
     if (name.startsWith("cinteropTest")) return@configureEach
 
-    val grammarFiles = grammar.files.get()
+    val srcDir = grammarDir.resolve("src")
+    val grammarFiles =
+        if (!srcDir.resolve("scanner.c").isFile) arrayOf(srcDir.resolve("parser.c"))
+        else arrayOf(srcDir.resolve("parser.c"), srcDir.resolve("scanner.c"))
     val grammarName = grammar.grammarName.get()
     val runKonan = File(konanHome.get()).resolve("bin")
         .resolve(if (os.isWindows) "run_konan.bat" else "run_konan").path
     val libFile = libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a").asFile
     val objectFiles = grammarFiles.map {
-        grammarDir.resolve(it.nameWithoutExtension + ".o").path
+        srcDir.resolve(it.nameWithoutExtension + ".o").path
     }.toTypedArray()
     val loader = PlatformManager(konanHome.get(), false, konanDataDir.orNull).loader(konanTarget)
 
@@ -141,7 +140,7 @@ tasks.withType<CInteropProcess>().configureEach {
         val argsFile = File.createTempFile("args", null)
         argsFile.deleteOnExit()
         argsFile.writer().useToRun {
-            write("-I" + grammarDir.resolve("src").unixPath + "\n")
+            write("-I" + srcDir.unixPath + "\n")
             write("-DTREE_SITTER_HIDE_SYMBOLS\n")
             write("-fvisibility=hidden\n")
             write("-std=c11\n")

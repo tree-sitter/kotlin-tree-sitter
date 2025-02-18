@@ -30,7 +30,6 @@ public abstract class GrammarPlugin implements Plugin<Project> {
         project.getTasks().register("generateGrammarFiles", GrammarFilesTask.class, it -> {
             it.setGrammarDir(extension.getBaseDir().get());
             it.setGrammarName(extension.getGrammarName().get());
-            it.setGrammarFiles(extension.getFiles().get());
             it.setInteropName(extension.getInteropName().get());
             it.setLibraryName(extension.getLibraryName().get());
             it.setPackageName(extension.getPackageName().get());
