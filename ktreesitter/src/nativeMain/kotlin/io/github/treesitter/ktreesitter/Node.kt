@@ -213,6 +213,24 @@ actual class Node internal constructor(
     }
 
     /**
+     * Get the node's first child that contains
+     * or starts after the given byte offset.
+     *
+     * @since 0.25.0
+     */
+    actual fun firstChildForByte(byte: UInt) =
+        ts_node_first_child_for_byte(self, byte).convert(tree)
+
+    /**
+     * Get the node's first _named_ child that contains
+     * or starts after the given byte offset.
+     *
+     * @since 0.25.0
+     */
+    actual fun firstNamedChildForByte(byte: UInt) =
+        ts_node_first_named_child_for_byte(self, byte).convert(tree)
+
+    /**
      * Get the node's child with the given field ID, if any.
      *
      * @see [Language.fieldIdForName]
@@ -267,14 +285,6 @@ actual class Node internal constructor(
         if (index < childCount) return ts_node_field_name_for_named_child(self, index)?.toKString()
         throw IndexOutOfBoundsException("Child index $index is out of bounds")
     }
-
-    /** Get the child of the node that contains the given descendant, if any. */
-    @Deprecated(
-        "This method will not return a direct descendant",
-        ReplaceWith("childWithDescendant(descendant)", "io.github.treesitter.ktreesitter.Node")
-    )
-    actual fun childContainingDescendant(descendant: Node) =
-        ts_node_child_containing_descendant(self, descendant.self).convert(tree)
 
     /**
      * Get the node that contains the given descendant, if any.

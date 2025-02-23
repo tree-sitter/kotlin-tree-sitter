@@ -69,6 +69,7 @@ actual class Parser actual constructor() {
      * The maximum duration in microseconds that parsing
      * should be allowed to take before halting.
      */
+    @Deprecated("Use the progressCallback in parse()")
     actual var timeoutMicros: ULong
         get() = ts_parser_timeout_micros(self)
         set(value) = ts_parser_set_timeout_micros(self, value)
@@ -106,19 +107,19 @@ actual class Parser actual constructor() {
      * [Tree.edit] method in a way that exactly matches the source code changes.
      *
      * @throws [IllegalStateException]
-     *  If the parser does not have a [language] assigned or
-     *  if parsing was canceled due to a [timeout][timeoutMicros].
+     *  If the parser does not have a [language] assigned or if parsing was halted.
      */
     @Throws(IllegalStateException::class)
-    actual fun parse(source: String, oldTree: Tree?): Tree {
+    actual fun parse(source: String, encoding: InputEncoding, oldTree: Tree?): Tree {
         val language = checkNotNull(language) {
             "The parser has no language assigned"
         }
-        val tree = ts_parser_parse_string(
+        val tree = ts_parser_parse_string_encoding(
             self,
             oldTree?.self,
             source,
-            source.length.convert()
+            source.length.convert(),
+            encoding.value
         )
         checkNotNull(tree) { "Parsing failed" }
         return Tree(tree, source, language)
@@ -134,19 +135,23 @@ actual class Parser actual constructor() {
      * [Tree.edit] method in a way that exactly matches the source code changes.
      *
      * @throws [IllegalStateException]
-     *  If the parser does not have a [language] assigned or
-     *  if parsing was cancelled due to a [timeout][timeoutMicros].
+     *  If the parser does not have a [language] assigned or if parsing was halted.
      */
     @Throws(IllegalStateException::class)
-    actual fun parse(oldTree: Tree?, callback: ParseCallback): Tree {
+    actual fun parse(
+        encoding: InputEncoding,
+        oldTree: Tree?,
+        progressCallback: ParseProgressCallback?,
+        readCallback: ParseReadCallback
+    ): Tree {
         val language = checkNotNull(language) {
             "The parser has no language assigned"
         }
         val arena = Arena()
-        val payloadRef = StableRef.create(ParsePayload(arena, callback))
+        val payloadRef = StableRef.create(ParsePayload(arena, readCallback))
         val input = cValue<TSInput> {
             payload = payloadRef.asCPointer()
-            encoding = TSInputEncodingUTF8
+            this.encoding = encoding.value
             read = staticCFunction { payload, index, point, bytes ->
                 val data = payload!!.asStableRef<ParsePayload>().get()
                 val result = data.callback(index, point.useContents { convert() })
@@ -154,9 +159,24 @@ actual class Parser actual constructor() {
                 result?.toString()?.cstr?.getPointer(data.memScope)
             }
         }
-        val tree = ts_parser_parse(self, oldTree?.self, input)
+        var progressRef: StableRef<ParseProgressCallback>? = null
+        val tree = if (progressCallback == null) {
+            ts_parser_parse(self, oldTree?.self, input)
+        } else {
+            progressRef = StableRef.create(progressCallback)
+            val options = cValue<TSParseOptions> {
+                payload = progressRef.asCPointer()
+                progress_callback = staticCFunction { state ->
+                    val callback = state!!.pointed.payload!!
+                        .asStableRef<ParseProgressCallback>().get()
+                    callback(state.pointed.current_byte_offset, state.pointed.has_error)
+                }
+            }
+            ts_parser_parse_with_options(self, oldTree?.self, input, options)
+        }
         arena.clear()
         payloadRef.dispose()
+        progressRef?.dispose()
         checkNotNull(tree) { "Parsing failed" }
         return Tree(tree, null, language)
     }
@@ -164,10 +184,9 @@ actual class Parser actual constructor() {
     /**
      * Instruct the parser to start the next [parse] from the beginning.
      *
-     * If the parser previously failed because of a [timeout][timeoutMicros],
-     * then by default, it will resume where it left off. If you don't
-     * want to resume, and instead intend to use this parser to parse
-     * some other document, you must call this method first.
+     * If parsing was previously halted, then by default, it will resume where
+     * it left off. If you don't want to resume, and instead intend to use this
+     * parser to parse some other document, you must call this method first.
      */
     actual fun reset() = ts_parser_reset(self)
 
@@ -178,11 +197,11 @@ actual class Parser actual constructor() {
 
     private class ParsePayload(
         val memScope: AutofreeScope,
-        val callback: ParseCallback
+        val callback: ParseReadCallback
     )
 
     private companion object {
-        private inline fun freeLogger(logger: CValue<TSLogger>) {
+        private fun freeLogger(logger: CValue<TSLogger>) {
             val arena = Arena()
             interpretNullablePointed<TSLogger>(
                 arena.alloc(logger.size, logger.align).rawPtr

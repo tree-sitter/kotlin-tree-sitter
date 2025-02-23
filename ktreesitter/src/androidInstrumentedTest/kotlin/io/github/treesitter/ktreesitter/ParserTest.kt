@@ -30,12 +30,6 @@ class ParserTest : FunSpec({
         parser.includedRanges shouldHaveSingleElement range
     }
 
-    test("timeoutMicros") {
-        parser.timeoutMicros shouldBe 0UL
-        parser.timeoutMicros = 10000UL
-        parser.timeoutMicros shouldBe 10000UL
-    }
-
     test("logger") {
         shouldNotThrowAnyUnit {
             parser.logger = { _, _ ->
@@ -61,12 +55,12 @@ class ParserTest : FunSpec({
         }
 
         // UTF-16
-        source = "var java = \"💩\""
-        tree = parser.parse(source)
-        tree.text()?.subSequence(12, 14) shouldBe "\uD83D\uDCA9"
+        source = "\uFEFFvar java = \"💩\""
+        tree = parser.parse(source, encoding = InputEncoding.UTF_16BE)
+        tree.text()?.subSequence(13, 15) shouldBe "\uD83D\uDCA9"
     }
 
-    test("parse(callback)") {
+    test("parse(readCallback)") {
         val source = "class Foo {}"
         val tree = parser.parse { byte, _ ->
             val end = minOf(byte.toInt() * 2, source.length)
@@ -79,7 +73,6 @@ class ParserTest : FunSpec({
     afterTest { (test, _) ->
         when (test.name.name) {
             "includedRanges" -> parser.includedRanges = emptyList()
-            "timeoutMicros" -> parser.timeoutMicros = 0UL
             "logger" -> parser.logger = null
         }
     }

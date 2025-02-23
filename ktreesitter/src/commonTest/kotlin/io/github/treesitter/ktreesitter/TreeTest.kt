@@ -41,7 +41,7 @@ class TreeTest : FunSpec({
         source = "class Foo2 {}"
         tree.edit(edit)
         tree.text().shouldBeNull()
-        tree = parser.parse(source, tree)
+        tree = parser.parse(source, oldTree = tree)
         tree.text() shouldBe source
     }
 
@@ -53,7 +53,7 @@ class TreeTest : FunSpec({
     test("changedRanges()") {
         val edit = InputEdit(0U, 0U, 7U, Point(0U, 0U), Point(0U, 0U), Point(0U, 7U))
         tree.edit(edit)
-        val newTree = parser.parse("public $source", tree)
+        val newTree = parser.parse("public $source", oldTree = tree)
         tree.changedRanges(newTree).shouldHaveSingleElement {
             it.endByte == 7U && it.endPoint.column == 7U
         }
