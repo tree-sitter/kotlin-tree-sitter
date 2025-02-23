@@ -50,6 +50,7 @@ actual class Parser actual constructor() : AutoCloseable {
      */
     @get:JvmName("getTimeoutMicros")
     @set:JvmName("setTimeoutMicros")
+    @Deprecated("Use the progressCallback in parse()")
     actual var timeoutMicros: ULong
         @FastNative external get
 
@@ -82,11 +83,10 @@ actual class Parser actual constructor() : AutoCloseable {
      * [Tree.edit] method in a way that exactly matches the source code changes.
      *
      * @throws [IllegalStateException]
-     *  If the parser does not have a [language] assigned or
-     *  if parsing was cancelled due to a [timeout][timeoutMicros].
+     *  If the parser does not have a [language] assigned or if parsing was halted.
      */
     @Throws(IllegalStateException::class)
-    actual external fun parse(source: String, oldTree: Tree?): Tree
+    actual external fun parse(source: String, encoding: InputEncoding, oldTree: Tree?): Tree
 
     /**
      * Parse source code from a callback and create a syntax tree.
@@ -98,19 +98,22 @@ actual class Parser actual constructor() : AutoCloseable {
      * [Tree.edit] method in a way that exactly matches the source code changes.
      *
      * @throws [IllegalStateException]
-     *  If the parser does not have a [language] assigned or
-     *  if parsing was cancelled due to a [timeout][timeoutMicros].
+     *  If the parser does not have a [language] assigned or if parsing was halted.
      */
     @Throws(IllegalStateException::class)
-    actual external fun parse(oldTree: Tree?, callback: ParseCallback): Tree
+    actual external fun parse(
+        encoding: InputEncoding,
+        oldTree: Tree?,
+        progressCallback: ParseProgressCallback?,
+        readCallback: ParseReadCallback
+    ): Tree
 
     /**
      * Instruct the parser to start the next [parse] from the beginning.
      *
-     * If the parser previously failed because of a [timeout][timeoutMicros],
-     * then by default, it will resume where it left off. If you don't
-     * want to resume, and instead intend to use this parser to parse
-     * some other document, you must call this method first.
+     * If parsing was previously halted, then by default, it will resume where
+     * it left off. If you don't want to resume, and instead intend to use this
+     * parser to parse some other document, you must call this method first.
      */
     @FastNative
     actual external fun reset()

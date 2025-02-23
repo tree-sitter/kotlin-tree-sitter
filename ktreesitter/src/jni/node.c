@@ -247,6 +247,24 @@ jobject JNICALL node_children_by_field_id(JNIEnv *env, jobject this, jshort id) 
     return children;
 }
 
+jobject JNICALL node_first_child_for_byte(JNIEnv *env, jobject this, jint byte) {
+    TSNode self = unmarshal_node(env, this);
+    TSNode result = ts_node_first_child_for_byte(self, byte);
+    if (ts_node_is_null(result))
+        return NULL;
+    jobject tree = GET_FIELD(Object, this, Node_tree);
+    return marshal_node(env, result, tree);
+}
+
+jobject JNICALL node_first_named_child_for_byte(JNIEnv *env, jobject this, jint byte) {
+    TSNode self = unmarshal_node(env, this);
+    TSNode result = ts_node_first_named_child_for_byte(self, byte);
+    if (ts_node_is_null(result))
+        return NULL;
+    jobject tree = GET_FIELD(Object, this, Node_tree);
+    return marshal_node(env, result, tree);
+}
+
 jstring JNICALL node_field_name_for_child(JNIEnv *env, jobject this, jint index) {
     TSNode self = unmarshal_node(env, this);
     if (ts_node_child_count(self) <= (uint32_t)index) {
@@ -273,16 +291,6 @@ jstring JNICALL node_field_name_for_named_child(JNIEnv *env, jobject this, jint 
 
     const char *field_name = ts_node_field_name_for_named_child(self, (uint32_t)index);
     return field_name ? (*env)->NewStringUTF(env, field_name) : NULL;
-}
-
-jobject JNICALL node_child_containing_descendant(JNIEnv *env, jobject this, jobject descendant) {
-    TSNode self = unmarshal_node(env, this);
-    TSNode other = unmarshal_node(env, descendant);
-    TSNode result = ts_node_child_containing_descendant(self, other);
-    if (ts_node_is_null(result))
-        return NULL;
-    jobject tree = GET_FIELD(Object, this, Node_tree);
-    return marshal_node(env, result, tree);
 }
 
 jobject JNICALL node_child_with_descendant(JNIEnv *env, jobject this, jobject descendant) {
@@ -393,14 +401,14 @@ const JNINativeMethod Node_methods[] = {
     {"getChildren", "()Ljava/util/List;", (void *)&node_get_children},
     {"child", "(I)L" PACKAGE "Node;", (void *)&node_child},
     {"namedChild", "(I)L" PACKAGE "Node;", (void *)&node_named_child},
+    {"firstChildForByte", "(I)L" PACKAGE "Node;", (void *)&node_first_child_for_byte},
+    {"firstNamedChildForByte", "(I)L" PACKAGE "Node;", (void *)&node_first_named_child_for_byte},
     {"childByFieldId", "(S)L" PACKAGE "Node;", (void *)&node_child_by_field_id},
     {"childByFieldName", "(Ljava/lang/String;)L" PACKAGE "Node;",
      (void *)&node_child_by_field_name},
     {"childrenByFieldId", "(S)Ljava/util/List;", (void *)&node_children_by_field_id},
     {"fieldNameForChild", "(I)Ljava/lang/String;", (void *)&node_field_name_for_child},
     {"fieldNameForNamedChild", "(I)Ljava/lang/String;", (void *)&node_field_name_for_named_child},
-    {"childContainingDescendant", "(L" PACKAGE "Node;)L" PACKAGE "Node;",
-     (void *)&node_child_containing_descendant},
     {"childWithDescendant", "(L" PACKAGE "Node;)L" PACKAGE "Node;",
      (void *)&node_child_with_descendant},
     {"descendant", "(II)L" PACKAGE "Node;", (void *)&node_descendant__bytes},

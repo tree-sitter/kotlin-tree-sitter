@@ -149,6 +149,14 @@ class NodeTest : FunSpec({
         shouldThrow<IndexOutOfBoundsException> { rootNode.namedChild(1U) }
     }
 
+    test("firstChildForByte()") {
+        rootNode.firstChildForByte(10U)!!.type shouldBe "class_declaration"
+    }
+
+    test("firstNamedChildForByte()") {
+        rootNode.firstNamedChildForByte(10U)!!.type shouldBe "class_declaration"
+    }
+
     test("childByFieldId()") {
         rootNode.childByFieldId(0U).shouldBeNull()
     }
@@ -175,13 +183,6 @@ class NodeTest : FunSpec({
 
     test("fieldNameForNamedChild()") {
         rootNode.child(0U)!!.fieldNameForNamedChild(2U).shouldBeNull()
-    }
-
-    @Suppress("DEPRECATION")
-    test("childContainingDescendant()") {
-        val descendant = rootNode.child(0U)!!.child(0U)!!
-        val child = rootNode.childContainingDescendant(descendant)
-        child?.type shouldBe "class_declaration"
     }
 
     test("childWithDescendant()") {

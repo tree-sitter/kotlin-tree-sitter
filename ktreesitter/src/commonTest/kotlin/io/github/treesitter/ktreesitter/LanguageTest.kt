@@ -1,9 +1,9 @@
 package io.github.treesitter.ktreesitter
 
 import io.github.treesitter.ktreesitter.java.TreeSitterJava
-import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.*
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.comparables.*
 import io.kotest.matchers.nulls.*
 import io.kotest.matchers.string.*
@@ -12,8 +12,8 @@ import io.kotest.matchers.types.*
 class LanguageTest : FunSpec({
     val language = Language(TreeSitterJava.language())
 
-    test("version") {
-        language.version shouldBe 14U
+    test("abiVersion") {
+        language.abiVersion shouldBe 14U
     }
 
     test("symbolCount") {
@@ -28,6 +28,19 @@ class LanguageTest : FunSpec({
         language.fieldCount shouldBeGreaterThan 1U
     }
 
+    test("name") {
+        language.name.shouldBeNull()
+    }
+
+    test("metadata") {
+        language.metadata.shouldBeNull()
+    }
+
+    @OptIn(ExperimentalUnsignedTypes::class)
+    test("supertypes") {
+        language.supertypes.shouldBeEmpty()
+    }
+
     test("symbolName()") {
         language.symbolName(1U) shouldBe "identifier"
     }
@@ -35,6 +48,11 @@ class LanguageTest : FunSpec({
     test("symbolForName()") {
         language.symbolForName(";", false) shouldBeGreaterThan 0U
         language.symbolForName("program", true) shouldBeGreaterThan 0U
+    }
+
+    @OptIn(ExperimentalUnsignedTypes::class)
+    test("subtypes") {
+        language.subtypes(1U).shouldBeEmpty()
     }
 
     test("isNamed()") {
@@ -69,10 +87,6 @@ class LanguageTest : FunSpec({
         lookahead.language shouldBe language
     }
 
-    test("query()") {
-        shouldNotThrowAny { language.query("(program) @root") }
-    }
-
     test("equals()") {
         Language(TreeSitterJava.language()) shouldBe language.copy()
     }
@@ -82,6 +96,6 @@ class LanguageTest : FunSpec({
     }
 
     test("toString()") {
-        language.toString() shouldMatch Regex("""Language\(id=0x[0-9a-f]+, version=14\)""")
+        language.toString() shouldMatch Regex("""Language\(id=0x[0-9a-f]+, abiVersion=14\)""")
     }
 })
