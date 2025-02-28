@@ -18,7 +18,7 @@ data class Range @Throws(IllegalArgumentException::class) constructor(
     @get:JvmName("endByte") val endByte: UInt
 ) {
     init {
-        require(startPoint <= endPoint) { "Invalid point range: $startPoint to $endPoint" }
-        require(startByte <= endByte) { "Invalid byte range: $startByte to $endByte" }
+        require(startPoint <= endPoint) { "Invalid point range: [$startPoint, $endPoint]" }
+        require(startByte <= endByte) { "Invalid byte range: [$startByte, $endByte]" }
     }
 }

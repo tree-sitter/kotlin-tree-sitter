@@ -9,12 +9,7 @@ typedef struct {
         jstring string;
         const char *chars;
     } last_result;
-} ParseReadPayload;
-
-typedef struct {
-    JNIEnv *env;
-    jobject callback;
-} ParseProgressPayload;
+} ReadPayload;
 
 static inline TSInputEncoding get_encoding(JNIEnv *env, jobject encoding) {
     jobject UTF_8 = GET_STATIC_FIELD(Object, InputEncoding, InputEncoding_UTF_8);
@@ -61,7 +56,7 @@ static void log_function(void *payload, TSLogType log_type, const char *buffer) 
 
 static const char *parse_read_callback(void *payload, uint32_t byte_index, TSPoint position,
                                        uint32_t *bytes_read) {
-    ParseReadPayload *read_payload = (ParseReadPayload *)payload;
+    ReadPayload *read_payload = (ReadPayload *)payload;
     JNIEnv *env = read_payload->env;
     jstring last_string = read_payload->last_result.string;
     const char *last_chars = read_payload->last_result.chars;
@@ -94,17 +89,17 @@ static const char *parse_read_callback(void *payload, uint32_t byte_index, TSPoi
 }
 
 static bool parse_progress_callback(TSParseState *state) {
-    ParseProgressPayload *progress_payload = (ParseProgressPayload *)state->payload;
+    ProgressPayload *progress_payload = (ProgressPayload *)state->payload;
     JNIEnv *env = progress_payload->env;
     jobject offset = (*env)->AllocObject(env, global_class_cache.UInt);
     (*env)->SetIntField(env, offset, global_field_cache.UInt_data,
                         (jint)state->current_byte_offset);
     jobject error = NEW_OBJECT(Boolean, (jboolean)state->has_error);
-    jboolean result =
-        CALL_METHOD(Boolean, progress_payload->callback, Function2_invoke, offset, error);
+    jobject result =
+        CALL_METHOD(Object, progress_payload->callback, Function2_invoke, offset, error);
     (*env)->DeleteLocalRef(env, offset);
     (*env)->DeleteLocalRef(env, error);
-    return result;
+    return (bool)(*env)->GetBooleanField(env, result, global_field_cache.Boolean_value);
 }
 
 jlong JNICALL parser_init CRITICAL_NO_ARGS() { return (jlong)ts_parser_new(); }
@@ -214,7 +209,7 @@ jobject JNICALL parser_parse__function(JNIEnv *env, jobject this, jobject encodi
     }
     TSTree *old_ts_tree = old_tree ? GET_POINTER(TSTree, old_tree, Tree_self) : NULL;
 
-    ParseReadPayload read_payload = {.env = env, .callback = read_callback};
+    ReadPayload read_payload = {.env = env, .callback = read_callback};
     TSInputEncoding input_encoding = get_encoding(env, encoding);
     TSInput input = {
         .payload = (void *)&read_payload,
@@ -225,7 +220,7 @@ jobject JNICALL parser_parse__function(JNIEnv *env, jobject this, jobject encodi
     if (progress_callback == NULL) {
         ts_tree = ts_parser_parse(self, old_ts_tree, input);
     } else {
-        ParseProgressPayload progress_payload = {.env = env, .callback = progress_callback};
+        ProgressPayload progress_payload = {.env = env, .callback = progress_callback};
         TSParseOptions options = {
             .payload = (void *)&progress_payload,
             .progress_callback = parse_progress_callback,

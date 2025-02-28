@@ -1,7 +1,5 @@
 package io.github.treesitter.ktreesitter
 
-import cnames.structs.TSQuery
-import cnames.structs.TSQueryCursor
 import io.github.treesitter.ktreesitter.internal.*
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.native.ref.createCleaner
@@ -20,109 +18,55 @@ actual class Query @Throws(QueryError::class) actual constructor(
     private val language: Language,
     private val source: String
 ) {
-    private val self: CPointer<TSQuery>
-
-    private val cursor: CPointer<TSQueryCursor>
-
-    private val captureNames: MutableList<String>
-
-    private val predicates: List<MutableList<QueryPredicate>>
-
-    private val settings: List<MutableMap<String, String?>>
-
-    private val assertions: List<MutableMap<String, Pair<String?, Boolean>>>
+    internal val self = init(language, source)
 
     /** The number of patterns in the query. */
-    actual val patternCount: UInt
+    actual val patternCount: UInt = ts_query_pattern_count(self)
 
     /** The number of captures in the query. */
+    @Deprecated("captureCount is deprecated", ReplaceWith("captureNames.size"))
     actual val captureCount: UInt
+        get() = ts_query_capture_count(self)
+
+    internal val predicates = List(patternCount.toInt()) { mutableListOf<QueryPredicate>() }
+
+    private val settings = List(patternCount.toInt()) { mutableMapOf<String, String?>() }
+
+    private val assertions = List(patternCount.toInt()) {
+        mutableMapOf<String, Pair<String?, Boolean>>()
+    }
+
+    /**
+     * The capture names used in the query.
+     *
+     * @since 0.25.0
+     */
+    actual val captureNames = List(ts_query_capture_count(self).convert()) {
+        memScoped {
+            val length = alloc<UIntVar>()
+            val name = ts_query_capture_name_for_id(self, it.convert(), length.ptr)
+            if (name == null || length.value == 0U)
+                error("Failed to get capture name at index $it")
+            name.toKString()
+        }
+    }
+
+    /**
+     * The string literals used in the query.
+     *
+     * @since 0.25.0
+     */
+    actual val stringValues = List(ts_query_string_count(self).convert()) {
+        memScoped {
+            val length = alloc<UIntVar>()
+            val value = ts_query_string_value_for_id(self, it.convert(), length.ptr)
+            if (value == null || length.value == 0U)
+                error("Failed to get string value at index $it")
+            value.toKString()
+        }
+    }
 
     init {
-        val arena = Arena()
-        val errorOffset = arena.alloc<UIntVar>()
-        val errorType = arena.alloc<TSQueryError.Var>()
-        val query = ts_query_new(
-            language.self,
-            source,
-            source.length.convert(),
-            errorOffset.ptr,
-            errorType.ptr
-        )
-
-        if (query == null) {
-            var start = 0U
-            var row = 0U
-            val offset = errorOffset.value
-            for (line in source.splitToSequence('\n')) {
-                val lineEnd = start + line.length.toUInt() + 1U
-                if (lineEnd > offset) break
-                start = lineEnd
-                row += 1U
-            }
-            val column = offset - start
-
-            val exception = when (errorType.value) {
-                TSQueryError.TSQueryErrorSyntax -> {
-                    if (offset < source.length.toUInt()) {
-                        QueryError.Syntax(row.toLong(), column.toLong())
-                    } else {
-                        QueryError.Syntax(-1, -1)
-                    }
-                }
-                TSQueryError.TSQueryErrorCapture -> {
-                    val suffix = source.subSequence(offset.toInt(), source.length)
-                    val end = suffix.indexOfFirst { !kts_is_valid_predicate_char(it.code) }
-                    val error = suffix.subSequence(0, end.takeIf { it > -1 } ?: suffix.length)
-                    QueryError.Capture(row, column, error.toString())
-                }
-                TSQueryError.TSQueryErrorNodeType -> {
-                    val suffix = source.subSequence(offset.toInt(), source.length)
-                    val end = suffix.indexOfFirst { !kts_is_valid_identifier_char(it.code) }
-                    val error = suffix.subSequence(0, end.takeIf { it > -1 } ?: suffix.length)
-                    QueryError.NodeType(row, column, error.toString())
-                }
-                TSQueryError.TSQueryErrorField -> {
-                    val suffix = source.subSequence(offset.toInt(), source.length)
-                    val end = suffix.indexOfFirst { !kts_is_valid_identifier_char(it.code) }
-                    val error = suffix.subSequence(0, end.takeIf { it > -1 } ?: suffix.length)
-                    QueryError.Field(row, column, error.toString())
-                }
-                TSQueryError.TSQueryErrorStructure -> QueryError.Structure(row, column)
-                // language errors are handled in the Language class
-                else -> IllegalStateException("Unexpected query error")
-            }
-            arena.clear()
-            throw exception
-        }
-        arena.clear()
-
-        self = query
-        cursor = ts_query_cursor_new()!!
-        patternCount = ts_query_pattern_count(self)
-        captureCount = ts_query_capture_count(self)
-        predicates = List(patternCount.toInt()) { mutableListOf() }
-        settings = List(patternCount.toInt()) { mutableMapOf() }
-        assertions = List(patternCount.toInt()) { mutableMapOf() }
-        captureNames = MutableList(captureCount.toInt()) {
-            memScoped {
-                val length = alloc<UIntVar>()
-                val name = ts_query_capture_name_for_id(self, it.convert(), length.ptr)
-                if (name == null || length.value == 0U)
-                    error("Failed to get capture name at index $it")
-                name.toKString()
-            }
-        }
-        val stringValues = List(ts_query_string_count(self).convert()) {
-            memScoped {
-                val length = alloc<UIntVar>()
-                val value = ts_query_string_value_for_id(self, it.convert(), length.ptr)
-                if (value == null || length.value == 0U)
-                    error("Failed to get string value at index $it")
-                value.toKString()
-            }
-        }
-
         for (i in 0U..<patternCount) {
             var steps = 0U
             var tokens = memScoped {
@@ -342,142 +286,15 @@ actual class Query @Throws(QueryError::class) actual constructor(
 
     @Suppress("unused")
     @OptIn(ExperimentalNativeApi::class)
-    private val queryCleaner = createCleaner(self, ::ts_query_delete)
-
-    @Suppress("unused")
-    @OptIn(ExperimentalNativeApi::class)
-    private val cursorCleaner = createCleaner(cursor, ::ts_query_cursor_delete)
+    private val cleaner = createCleaner(self, ::ts_query_delete)
 
     /**
-     * The maximum duration in microseconds that query
-     * execution should be allowed to take before halting.
+     * Execute the query on the given [Node].
      *
-     * Default: `0`
-     *
-     * @since 0.23.0
+     * @since 0.25.0
      */
-    actual var timeoutMicros: ULong
-        get() = ts_query_cursor_timeout_micros(cursor)
-        set(value) {
-            ts_query_cursor_set_timeout_micros(cursor, value)
-        }
-
-    /**
-     * The maximum number of in-progress matches.
-     *
-     * Default: `UInt.MAX_VALUE`
-     *
-     * @throws [IllegalArgumentException] If the match limit is set to `0`.
-     */
-    actual var matchLimit: UInt
-        get() = ts_query_cursor_match_limit(cursor)
-        set(value) {
-            require(value > 0U) { "The match limit cannot be 0" }
-            ts_query_cursor_set_match_limit(cursor, value)
-        }
-
-    /**
-     * The maximum start depth for the query.
-     *
-     * This prevents cursors from exploring children nodes at a certain depth.
-     * Note that if a pattern includes many children, then they will still be checked.
-     *
-     * Default: `UInt.MAX_VALUE`
-     */
-    actual var maxStartDepth: UInt = UInt.MAX_VALUE
-        set(value) {
-            ts_query_cursor_set_max_start_depth(cursor, value)
-            field = value
-        }
-
-    /**
-     * The range of bytes in which the query will be executed.
-     *
-     * Default: `UInt.MIN_VALUE..UInt.MAX_VALUE`
-     */
-    actual var byteRange: UIntRange = UInt.MIN_VALUE..UInt.MAX_VALUE
-        set(value) {
-            ts_query_cursor_set_byte_range(cursor, value.first, value.last)
-            field = value
-        }
-
-    /**
-     * The range of points in which the query will be executed.
-     *
-     * Default: `Point.MIN..Point.MAX`
-     */
-    actual var pointRange: ClosedRange<Point> = Point.MIN..Point.MAX
-        set(value) {
-            val start = cValue<TSPoint> { from(value.start) }
-            val end = cValue<TSPoint> { from(value.endInclusive) }
-            ts_query_cursor_set_point_range(cursor, start, end)
-            field = value
-        }
-
-    /**
-     * Check if the query exceeded its maximum number of
-     * in-progress matches during its last execution.
-     */
-    actual val didExceedMatchLimit: Boolean
-        get() = ts_query_cursor_did_exceed_match_limit(cursor)
-
-    /**
-     * Iterate over all the matches in the order that they were found.
-     *
-     * #### Example
-     *
-     * ```kotlin
-     * query.matches(tree.rootNode) {
-     *      if (name != "ieq?") return@matches true
-     *      val node = it[(args[0] as QueryPredicateArg.Capture).value].first()
-     *      val value = (args[1] as QueryPredicateArg.Literal).value
-     *      value.equals(node.text()?.toString(), ignoreCase = true)
-     *  }
-     * ```
-     *
-     * @param node The node that the query will run on.
-     * @param predicate A function that handles custom predicates.
-     */
-    @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
-    actual fun matches(
-        node: Node,
-        predicate: QueryPredicate.(QueryMatch) -> Boolean = { true }
-    ): Sequence<QueryMatch> {
-        ts_query_cursor_exec(cursor, self, node.self)
-        return sequence {
-            memScoped {
-                val match = alloc<TSQueryMatch>()
-                while (ts_query_cursor_next_match(cursor, match.ptr)) {
-                    match.convert(node.tree, predicate)?.let { yield(it) }
-                }
-            }
-        }
-    }
-
-    /**
-     * Iterate over all the individual captures in the order that they appear.
-     *
-     * This is useful if you don't care about _which_ pattern matched.
-     *
-     * @param node The node that the query will run on.
-     * @param predicate A function that handles custom predicates.
-     */
-    @Suppress("ACTUAL_FUNCTION_WITH_DEFAULT_ARGUMENTS")
-    actual fun captures(
-        node: Node,
-        predicate: QueryPredicate.(QueryMatch) -> Boolean = { true }
-    ): Sequence<Pair<UInt, QueryMatch>> {
-        ts_query_cursor_exec(cursor, self, node.self)
-        return sequence {
-            memScoped {
-                val match = alloc<TSQueryMatch>()
-                val index = alloc<UIntVar>()
-                while (ts_query_cursor_next_capture(cursor, match.ptr, index.ptr)) {
-                    match.convert(node.tree, predicate)?.let { yield(index.value to it) }
-                }
-            }
-        }
-    }
+    actual operator fun invoke(node: Node, progressCallback: QueryProgressCallback?) =
+        QueryCursor(this, node, progressCallback)
 
     /**
      * Get the property settings for the given pattern index.
@@ -535,13 +352,8 @@ actual class Query @Throws(QueryError::class) actual constructor(
      * This prevents the capture from being returned in matches,
      * and also avoids most resource usage associated with recording
      * the capture. Currently, there is no way to undo this.
-     *
-     * @throws [NoSuchElementException] If the capture does not exist.
      */
-    @Throws(NoSuchElementException::class)
     actual fun disableCapture(name: String) {
-        if (!captureNames.remove(name))
-            throw NoSuchElementException("Capture @$name does not exist")
         ts_query_disable_capture(self, name, name.length.convert())
     }
 
@@ -617,25 +429,65 @@ actual class Query @Throws(QueryError::class) actual constructor(
 
     override fun toString() = "Query(language=$language, source=$source)"
 
-    private fun TSQueryMatch.convert(
-        tree: Tree,
-        predicate: QueryPredicate.(QueryMatch) -> Boolean
-    ): QueryMatch? {
-        val index = pattern_index.convert<UInt>()
-        val captures = (UShort.MIN_VALUE..<capture_count).map {
-            val c = captures!![it.convert<Long>()]
-            QueryCapture(
-                Node(c.node.readValue(), tree),
-                this@Query.captureNames[c.index]
+    private companion object {
+        private fun init(language: Language, source: String) = memScoped {
+            val errorOffset = alloc<UIntVar>()
+            val errorType = alloc<TSQueryError.Var>()
+            val query = ts_query_new(
+                language.self,
+                source,
+                source.length.convert(),
+                errorOffset.ptr,
+                errorType.ptr
             )
-        }
-        return QueryMatch(index, captures).takeIf { match ->
-            tree.text() == null ||
-                predicates[index].all {
-                    if (it !is QueryPredicate.Generic) it(match) else predicate(it, match)
-                }
-        }
-    }
+            if (query != null)
+                return@memScoped query
 
-    private inline operator fun <T> List<T>.get(index: UInt) = get(index.toInt())
+            var start = 0U
+            var row = 0U
+            val offset = errorOffset.value
+            for (line in source.splitToSequence('\n')) {
+                val lineEnd = start + line.length.toUInt() + 1U
+                if (lineEnd > offset) break
+                start = lineEnd
+                row += 1U
+            }
+            val column = offset - start
+
+            val exception = when (errorType.value) {
+                TSQueryError.TSQueryErrorSyntax -> {
+                    if (offset < source.length.toUInt()) {
+                        QueryError.Syntax(row.toLong(), column.toLong())
+                    } else {
+                        QueryError.Syntax(-1, -1)
+                    }
+                }
+                TSQueryError.TSQueryErrorCapture -> {
+                    val suffix = source.subSequence(offset.toInt(), source.length)
+                    val end = suffix.indexOfFirst { !kts_is_valid_predicate_char(it.code) }
+                    val error = suffix.subSequence(0, end.takeIf { it > -1 } ?: suffix.length)
+                    QueryError.Capture(row, column, error.toString())
+                }
+                TSQueryError.TSQueryErrorNodeType -> {
+                    val suffix = source.subSequence(offset.toInt(), source.length)
+                    val end = suffix.indexOfFirst { !kts_is_valid_identifier_char(it.code) }
+                    val error = suffix.subSequence(0, end.takeIf { it > -1 } ?: suffix.length)
+                    QueryError.NodeType(row, column, error.toString())
+                }
+                TSQueryError.TSQueryErrorField -> {
+                    val suffix = source.subSequence(offset.toInt(), source.length)
+                    val end = suffix.indexOfFirst { !kts_is_valid_identifier_char(it.code) }
+                    val error = suffix.subSequence(0, end.takeIf { it > -1 } ?: suffix.length)
+                    QueryError.Field(row, column, error.toString())
+                }
+                TSQueryError.TSQueryErrorStructure -> QueryError.Structure(row, column)
+                // language errors are handled in the Language class
+                else -> IllegalStateException("Unexpected query error")
+            }
+            throw exception
+        }
+
+        @Suppress("NOTHING_TO_INLINE")
+        private inline operator fun <T> List<T>.get(index: UInt) = get(index.toInt())
+    }
 }

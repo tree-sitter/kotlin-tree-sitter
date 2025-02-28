@@ -1,6 +1,17 @@
 package io.github.treesitter.ktreesitter
 
 /**
+ * A function that is called while executing a query.
+ *
+ * The argument contains the current byte offset.
+ *
+ * If the function returns `false`, the execution will halt early.
+ *
+ * @since 0.25.0
+ */
+typealias QueryProgressCallback = (currentByteOffset: UInt) -> Boolean
+
+/**
  * A class that represents a set of patterns which match nodes in a syntax tree.
  *
  * @constructor
@@ -13,91 +24,29 @@ expect class Query @Throws(QueryError::class) constructor(language: Language, so
     val patternCount: UInt
 
     /** The number of captures in the query. */
+    @Deprecated("captureCount is deprecated.", ReplaceWith("captureNames.size"))
     val captureCount: UInt
 
     /**
-     * The maximum duration in microseconds that query
-     * execution should be allowed to take before halting.
+     * The capture names used in the query.
      *
-     * Default: `0`
-     *
-     * @since 0.23.0
+     * @since 0.25.0
      */
-    var timeoutMicros: ULong
+    val captureNames: List<String>
 
     /**
-     * The maximum number of in-progress matches.
+     * The string literals used in the query.
      *
-     * Default: `UInt.MAX_VALUE`
-     *
-     * @throws [IllegalArgumentException] If the match limit is set to `0`.
+     * @since 0.25.0
      */
-    var matchLimit: UInt
+    val stringValues: List<String>
 
     /**
-     * The maximum start depth for the query.
+     * Execute the query on the given [Node].
      *
-     * This prevents cursors from exploring children nodes at a certain depth.
-     * Note that if a pattern includes many children, then they will still be checked.
-     *
-     * Default: `UInt.MAX_VALUE`
+     * @since 0.25.0
      */
-    var maxStartDepth: UInt
-
-    /**
-     * The range of bytes in which the query will be executed.
-     *
-     * Default: `UInt.MIN_VALUE..UInt.MAX_VALUE`
-     */
-    var byteRange: UIntRange
-
-    /**
-     * The range of points in which the query will be executed.
-     *
-     * Default: `Point.MIN..Point.MAX`
-     */
-    var pointRange: ClosedRange<Point>
-
-    /**
-     * Check if the query exceeded its maximum number of
-     * in-progress matches during its last execution.
-     */
-    val didExceedMatchLimit: Boolean
-
-    /**
-     * Iterate over all the matches in the order that they were found.
-     *
-     * #### Example
-     *
-     * ```kotlin
-     * query.matches(tree.rootNode) {
-     *      if (name != "ieq?") return@matches true
-     *      val node = it[(args[0] as QueryPredicateArg.Capture).value].first()
-     *      val value = (args[1] as QueryPredicateArg.Literal).value
-     *      value.equals(node.text()?.toString(), ignoreCase = true)
-     *  }
-     * ```
-     *
-     * @param node The node that the query will run on.
-     * @param predicate A function that handles custom predicates.
-     */
-    fun matches(
-        node: Node,
-        predicate: QueryPredicate.(QueryMatch) -> Boolean = { true }
-    ): Sequence<QueryMatch>
-
-    /**
-     * Iterate over all the individual captures in the order that they appear.
-     *
-     * This is useful if you don't care about _which_ pattern matched.
-     *
-     * @param node The node that the query will run on.
-     * @param predicate A function that handles custom predicates.
-     */
-    fun captures(
-        node: Node,
-        predicate: QueryPredicate.(QueryMatch) -> Boolean = { true }
-    ): Sequence<Pair<UInt, QueryMatch>>
+    operator fun invoke(node: Node, progressCallback: QueryProgressCallback? = null): QueryCursor
 
     /**
      * Get the property settings for the given pattern index.
@@ -142,10 +91,7 @@ expect class Query @Throws(QueryError::class) constructor(language: Language, so
      * This prevents the capture from being returned in matches,
      * and also avoids most resource usage associated with recording
      * the capture. Currently, there is no way to undo this.
-     *
-     * @throws [NoSuchElementException] If the capture does not exist.
      */
-    @Throws(NoSuchElementException::class)
     fun disableCapture(name: String)
 
     /**
