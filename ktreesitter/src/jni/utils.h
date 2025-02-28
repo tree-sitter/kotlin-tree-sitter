@@ -54,6 +54,12 @@
 #endif
 
 typedef struct {
+    JNIEnv *env;
+    jobject callback;
+} ProgressPayload;
+
+typedef struct {
+    jfieldID Boolean_value;
     jfieldID InputEdit_newEndByte;
     jfieldID InputEdit_newEndPoint;
     jfieldID InputEdit_oldEndByte;
@@ -78,14 +84,13 @@ typedef struct {
     jfieldID Parser_timeoutMicros;
     jfieldID Point_column;
     jfieldID Point_row;
-    jfieldID Query_captureNames;
-    jfieldID Query_cursor;
+    jfieldID QueryCursor_matchLimit;
+    jfieldID QueryCursor_maxStartDepth;
+    jfieldID QueryCursor_self;
+    jfieldID QueryCursor_timeoutMicros;
     jfieldID Query_language;
-    jfieldID Query_matchLimit;
-    jfieldID Query_maxStartDepth;
     jfieldID Query_self;
     jfieldID Query_source;
-    jfieldID Query_timeoutMicros;
     jfieldID Range_endByte;
     jfieldID Range_endPoint;
     jfieldID Range_startByte;
@@ -104,6 +109,7 @@ typedef struct {
     jmethodID ArrayList_init;
     jmethodID Boolean_init;
     jmethodID CharSequence_toString;
+    jmethodID Function1_invoke;
     jmethodID Function2_invoke;
     jmethodID Language_init;
     jmethodID Language$Metadata_init;
@@ -113,6 +119,7 @@ typedef struct {
     jmethodID Pair_init;
     jmethodID Point_init;
     jmethodID QueryCapture_init;
+    jmethodID QueryCursor_init;
     jmethodID QueryError$Capture_init;
     jmethodID QueryError$Field_init;
     jmethodID QueryError$NodeType_init;
@@ -128,6 +135,7 @@ typedef struct {
     jclass ArrayList;
     jclass Boolean;
     jclass CharSequence;
+    jclass Function1;
     jclass Function2;
     jclass IllegalArgumentException;
     jclass IllegalStateException;
@@ -145,6 +153,7 @@ typedef struct {
     jclass Point;
     jclass Query;
     jclass QueryCapture;
+    jclass QueryCursor;
     jclass QueryError$Capture;
     jclass QueryError$Field;
     jclass QueryError$NodeType;

@@ -5,16 +5,12 @@ import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.inspectors.forAll
 import io.kotest.inspectors.forOne
-import io.kotest.inspectors.forSingle
 import io.kotest.matchers.*
-import io.kotest.matchers.collections.*
 
 class QueryTest :
     FunSpec({
         val language = Language(TreeSitterJava.language())
-        val parser = Parser(language)
         val source = """
     (identifier) @identifier
 
@@ -63,144 +59,6 @@ class QueryTest :
         test("patternCount") {
             val query = Query(language, source)
             query.patternCount shouldBe 2U
-        }
-
-        test("captureCount") {
-            val query = Query(language, source)
-            query.captureCount shouldBe 3U
-        }
-
-        test("timeoutMicros") {
-            val query = Query(language, source)
-            query.timeoutMicros shouldBe 0UL
-            query.timeoutMicros = 10UL
-            query.timeoutMicros shouldBe 10UL
-        }
-
-        test("matchLimit") {
-            val query = Query(language, source)
-            query.matchLimit shouldBe UInt.MAX_VALUE
-            query.matchLimit = 10U
-            query.matchLimit shouldBe 10U
-        }
-
-        test("maxStartDepth") {
-            val query = Query(language, source)
-            query.maxStartDepth = 10U
-            query.maxStartDepth shouldBe 10U
-        }
-
-        test("byteRange") {
-            val query = Query(language, source)
-            query.byteRange = 0U..10U
-            query.byteRange.last shouldBe 10U
-        }
-
-        test("pointRange") {
-            val query = Query(language, source)
-            query.pointRange = Point(0U, 10U)..Point.MAX
-            query.pointRange.start shouldBe Point(0U, 10U)
-        }
-
-        test("didExceedMatchLimit") {
-            val query = Query(language, source)
-            query.didExceedMatchLimit shouldBe false
-        }
-
-        test("matches()") {
-            var tree = parser.parse("class Foo {}")
-            var query = Query(language, source)
-            var matches = query.matches(tree.rootNode).toList()
-            matches.shouldHaveSize(2).shouldBeMonotonicallyIncreasingWith { a, b ->
-                a.patternIndex.compareTo(b.patternIndex)
-            }
-
-            tree = parser.parse("int y = x + 1;")
-            query = Query(
-                language,
-                """
-            ((variable_declarator
-              (identifier) @y
-              (binary_expression
-                (identifier) @x))
-              (#not-eq? @y @x))
-                """.trimIndent()
-            )
-            matches = query.matches(tree.rootNode).toList()
-            matches.forSingle {
-                it.captures[0].node.text() shouldBe "y"
-            }
-
-            tree = parser.parse(
-                """
-            class Foo {}
-            class Bar {}
-                """.trimIndent()
-            )
-            query = Query(
-                language,
-                """
-            ((identifier) @foo
-             (#eq? @foo "Foo"))
-                """.trimIndent()
-            )
-            matches = query.matches(tree.rootNode).toList()
-            matches.forSingle {
-                it.captures[0].node.text() shouldBe "Foo"
-            }
-
-            query = Query(
-                language,
-                """
-            ((identifier) @name
-             (#not-any-of? @name "Foo" "Bar"))
-                """.trimIndent()
-            )
-            matches = query.matches(tree.rootNode).toList()
-            matches.shouldBeEmpty()
-
-            query = Query(
-                language,
-                """
-            ((identifier) @foo
-             (#ieq? @foo "foo"))
-                """.trimIndent()
-            )
-            matches = query.matches(tree.rootNode) {
-                if (name != "ieq?") return@matches true
-                val node = it[(args[0] as QueryPredicateArg.Capture).value].single()
-                (args[1] as QueryPredicateArg.Literal).value.equals(node.text().toString(), true)
-            }.toList()
-            matches.forSingle {
-                it.captures[0].node.text() shouldBe "Foo"
-            }
-        }
-
-        test("captures()") {
-            var tree = parser.parse("class Foo {}")
-            var query = Query(language, source)
-            var captures = query.captures(tree.rootNode).toList()
-            captures.shouldHaveSize(3).take(2).forAll {
-                it.second.captures[0].node.type shouldBe "identifier"
-            }
-
-            tree = parser.parse(
-                """
-            /// foo
-            /// bar
-                """.trimIndent()
-            )
-            query = Query(
-                language,
-                """
-            ((line_comment)+ @foo
-              (#any-match? @foo "foo"))
-                """.trimIndent()
-            )
-            captures = query.captures(tree.rootNode).toList()
-            captures.shouldHaveSize(2).forAll {
-                it.second.captures[0].name shouldBe "foo"
-            }
         }
 
         test("settings()") {
@@ -264,34 +122,6 @@ class QueryTest :
 
             shouldThrow<IndexOutOfBoundsException> {
                 query.assertions(1U)
-            }
-        }
-
-        test("disablePattern()") {
-            val query = Query(language, source)
-            query.disablePattern(1U)
-            val tree = parser.parse("class Foo {}")
-            val matches = query.captures(tree.rootNode).toList()
-            matches.forSingle {
-                it.second.captures[0].node.type shouldBe "identifier"
-            }
-
-            shouldThrow<IndexOutOfBoundsException> {
-                query.disablePattern(2U)
-            }
-        }
-
-        test("disableCapture()") {
-            val query = Query(language, source)
-            query.disableCapture("body")
-            val tree = parser.parse("class Foo {}")
-            val matches = query.captures(tree.rootNode).toList()
-            matches.shouldHaveSize(2).forAll {
-                it.second.captures[0].node.type shouldBe "identifier"
-            }
-
-            shouldThrow<NoSuchElementException> {
-                query.disableCapture("none")
             }
         }
 

@@ -32,6 +32,7 @@ add_library(ktreesitter SHARED
             ./src/jni/node.c
             ./src/jni/parser.c
             ./src/jni/query.c
+            ./src/jni/query_cursor.c
             ./src/jni/tree.c
             ./src/jni/tree_cursor.c
             ./src/jni/module.c

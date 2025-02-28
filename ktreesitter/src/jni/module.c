@@ -21,6 +21,9 @@ extern const size_t Parser_methods_size;
 extern const JNINativeMethod Query_methods[];
 extern const size_t Query_methods_size;
 
+extern const JNINativeMethod QueryCursor_methods[];
+extern const size_t QueryCursor_methods_size;
+
 FieldCache global_field_cache = {0};
 MethodCache global_method_cache = {0};
 ClassCache global_class_cache = {0};
@@ -100,12 +103,14 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
 
     REGISTER_CLASS(Query);
     CACHE_FIELD(Query, self, "J");
-    CACHE_FIELD(Query, cursor, "J");
-    CACHE_FIELD(Query, matchLimit, "I");
-    CACHE_FIELD(Query, maxStartDepth, "I");
     CACHE_FIELD(Query, language, "L" PACKAGE "Language;");
-    CACHE_FIELD(Query, captureNames, "Ljava/util/List;");
     CACHE_FIELD(Query, source, "Ljava/lang/String;");
+
+    REGISTER_CLASS(QueryCursor);
+    CACHE_FIELD(QueryCursor, self, "J");
+    CACHE_FIELD(QueryCursor, matchLimit, "I");
+    CACHE_FIELD(QueryCursor, maxStartDepth, "I");
+    CACHE_FIELD(QueryCursor, timeoutMicros, "J");
 
     REGISTER_CLASS(Parser);
     CACHE_FIELD(Parser, self, "J");
@@ -168,6 +173,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
     CACHE_METHOD(QueryError$Structure, init, "<init>", "(II)V");
 
     CACHE_CLASS("java/lang/", Boolean);
+    CACHE_FIELD(Boolean, value, "Z");
     CACHE_METHOD(Boolean, init, "<init>", "(Z)V");
 
     CACHE_CLASS("java/lang/", CharSequence);
@@ -194,6 +200,10 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
     CACHE_CLASS("kotlin/", UShort);
     CACHE_FIELD(UShort, data, "S");
 
+    CACHE_CLASS("kotlin/jvm/functions/", Function1);
+    CACHE_METHOD(Function1, invoke, "invoke",
+                 "(Ljava/lang/Object;)Ljava/lang/Object;");
+
     CACHE_CLASS("kotlin/jvm/functions/", Function2);
     CACHE_METHOD(Function2, invoke, "invoke",
                  "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
@@ -217,6 +227,8 @@ JNIEXPORT void JNI_OnUnload(JavaVM *vm, void *_reserved) {
     (*env)->DeleteGlobalRef(env, global_class_cache.ArrayList);
     (*env)->DeleteGlobalRef(env, global_class_cache.Boolean);
     (*env)->DeleteGlobalRef(env, global_class_cache.CharSequence);
+    (*env)->DeleteGlobalRef(env, global_class_cache.Function1);
+    (*env)->DeleteGlobalRef(env, global_class_cache.Function2);
     (*env)->DeleteGlobalRef(env, global_class_cache.IllegalArgumentException);
     (*env)->DeleteGlobalRef(env, global_class_cache.IllegalStateException);
     (*env)->DeleteGlobalRef(env, global_class_cache.IndexOutOfBoundsException);
@@ -231,6 +243,7 @@ JNIEXPORT void JNI_OnUnload(JavaVM *vm, void *_reserved) {
     (*env)->DeleteGlobalRef(env, global_class_cache.Parser);
     (*env)->DeleteGlobalRef(env, global_class_cache.Point);
     (*env)->DeleteGlobalRef(env, global_class_cache.Query);
+    (*env)->DeleteGlobalRef(env, global_class_cache.QueryCursor);
     (*env)->DeleteGlobalRef(env, global_class_cache.QueryError$Capture);
     (*env)->DeleteGlobalRef(env, global_class_cache.QueryError$Field);
     (*env)->DeleteGlobalRef(env, global_class_cache.QueryError$NodeType);

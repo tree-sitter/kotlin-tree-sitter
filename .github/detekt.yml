@@ -1,4 +1,7 @@
 complexity:
+  CyclomaticComplexMethod:
+    ignoreFunction:
+      - "io.github.treesitter.ktreesitter.Query.Companion.init"
   TooManyFunctions:
     active: false
   LongParameterList:
