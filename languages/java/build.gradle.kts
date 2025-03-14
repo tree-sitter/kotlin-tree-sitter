@@ -63,7 +63,7 @@ kotlin {
                 defFileProperty.set(generateTask.interopFile.asFile)
                 includeDirs.allHeaders(grammarDir.resolve("bindings/c"))
                 extraOpts("-libraryPath", libsDir.dir(konanTarget.name))
-                tasks.getByName(interopProcessingTaskName).mustRunAfter(generateTask)
+                tasks.getByName(interopProcessingTaskName).dependsOn(generateTask)
             }
         }
     }
