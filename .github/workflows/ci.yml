@@ -9,6 +9,7 @@ on:
       - "**/jni/*"
       - gradle/**
       - gradle.properties
+      - ktreesitter/gradle.lockfile
   pull_request:
     paths:
       - "/*.kt"
@@ -16,6 +17,7 @@ on:
       - "**/jni/*"
       - gradle/**
       - gradle.properties
+      - ktreesitter/gradle.lockfile
 
 concurrency:
   cancel-in-progress: true
@@ -42,6 +44,7 @@ jobs:
           cache-dependency-path: |
             gradle/libs.versions.toml
             gradle/wrapper/gradle-wrapper.properties
+            ktreesitter/gradle.lockfile
       - name: Set up Kotlin/Native
         uses: ObserverOfTime/setup-konan-action@v1
         with:
