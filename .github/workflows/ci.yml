@@ -122,7 +122,7 @@ jobs:
           path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
           key: konan-${{runner.os}}-prebuilt-1.9
       - name: Download generated files
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: languages
           name: generated-files

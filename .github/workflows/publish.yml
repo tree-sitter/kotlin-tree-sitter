@@ -147,7 +147,7 @@ jobs:
           path: ${{runner.tool_cache}}/konan/dependencies
           key: konan-${{runner.os}}-dependencies
       - name: Download library artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         if: matrix.platform == 'JVM'
         with:
           path: ktreesitter/src/jvmMain/resources/lib
@@ -186,7 +186,7 @@ jobs:
       SONATYPE_AUTH: "Authorization: Bearer ${{secrets.SONATYPE_TOKEN}}"
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: ktreesitter
           pattern: ktreesitter-jars-*
