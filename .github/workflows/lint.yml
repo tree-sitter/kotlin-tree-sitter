@@ -26,15 +26,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
       - name: Install ktlint
         run: |-
-          curl -sSLO https://github.com/pinterest/ktlint/releases/download/1.6.0/ktlint
+          curl -sSLO https://github.com/pinterest/ktlint/releases/download/1.7.1/ktlint
           chmod a+x ktlint && mv ktlint $RUNNER_TOOL_CACHE/ktlint
       - name: Run ktlint
         id: ktlint
@@ -51,9 +51,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
