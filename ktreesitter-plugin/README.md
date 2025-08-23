@@ -35,10 +35,5 @@ grammar {
   className = "TreeSitterJava"
   // The name of the package
   packageName = "io.github.treesitter.ktreesitter.java"
-  // The source files of the grammar
-  files = arrayOf(
-    baseDir.get().resolve("src/parser.c"),
-    // baseDir.get().resolve("src/scanner.c")
-  )
 }
 ```

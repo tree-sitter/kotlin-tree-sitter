@@ -206,6 +206,24 @@ actual class Node internal constructor(
     actual external fun namedChild(index: UInt): Node?
 
     /**
+     * Get the node's first child that contains
+     * or starts after the given byte offset.
+     *
+     * @since 0.25.0
+     */
+    @JvmName("firstChildForByte")
+    actual external fun firstChildForByte(byte: UInt): Node?
+
+    /**
+     * Get the node's first _named_ child that contains
+     * or starts after the given byte offset.
+     *
+     * @since 0.25.0
+     */
+    @JvmName("firstNamedChildForByte")
+    actual external fun firstNamedChildForByte(byte: UInt): Node?
+
+    /**
      * Get the node's child with the given field ID, if any.
      *
      * @see [Language.fieldIdForName]
@@ -243,13 +261,6 @@ actual class Node internal constructor(
     @JvmName("fieldNameForNamedChild")
     @Throws(IndexOutOfBoundsException::class)
     actual external fun fieldNameForNamedChild(index: UInt): String?
-
-    /** Get the child of the node that contains the given descendant, if any. */
-    @Deprecated(
-        "This method will not return a direct descendant",
-        ReplaceWith("childWithDescendant(descendant)", "io.github.treesitter.ktreesitter.Node")
-    )
-    actual external fun childContainingDescendant(descendant: Node): Node?
 
     /**
      * Get the node that contains the given descendant, if any.

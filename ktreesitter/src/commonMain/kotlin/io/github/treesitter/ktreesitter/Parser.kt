@@ -5,7 +5,19 @@ package io.github.treesitter.ktreesitter
  *
  * The function should return `null` to indicate the end of the document.
  */
-typealias ParseCallback = (byte: UInt, point: Point) -> CharSequence?
+typealias ParseReadCallback = (byte: UInt, point: Point) -> CharSequence?
+
+/**
+ * A function that is called during parsing.
+ *
+ * The first argument contains the current byte offset and the second
+ * argument indicates whether the parser has encountered an error.
+ *
+ * If the function returns `false`, parsing will halt early.
+ *
+ * @since 0.25.0
+ */
+typealias ParseProgressCallback = (currentByteOffset: UInt, hasError: Boolean) -> Boolean
 
 /**
  * A function that logs parsing results.
@@ -45,13 +57,12 @@ expect class Parser() {
      * The maximum duration in microseconds that parsing
      * should be allowed to take before halting.
      */
+    @Deprecated("Use the progressCallback in parse()")
     var timeoutMicros: ULong
 
     /** The logger that the parser will use during parsing. */
     @get:Deprecated("The logger can't be called directly.", level = DeprecationLevel.HIDDEN)
     var logger: LogFunction?
-
-    // TODO: add cancellationFlag
 
     /**
      * Parse a source code string and create a syntax tree.
@@ -63,11 +74,14 @@ expect class Parser() {
      * [Tree.edit] method in a way that exactly matches the source code changes.
      *
      * @throws [IllegalStateException]
-     *  If the parser does not have a [language] assigned or
-     *  if parsing was cancelled due to a [timeout][timeoutMicros].
+     *  If the parser does not have a [language] assigned or if parsing was halted.
      */
     @Throws(IllegalStateException::class)
-    fun parse(source: String, oldTree: Tree? = null): Tree
+    fun parse(
+        source: String,
+        encoding: InputEncoding = InputEncoding.UTF_8,
+        oldTree: Tree? = null
+    ): Tree
 
     /**
      * Parse source code from a callback and create a syntax tree.
@@ -79,19 +93,22 @@ expect class Parser() {
      * [Tree.edit] method in a way that exactly matches the source code changes.
      *
      * @throws [IllegalStateException]
-     *  If the parser does not have a [language] assigned or
-     *  if parsing was cancelled due to a [timeout][timeoutMicros].
+     *  If the parser does not have a [language] assigned or if parsing was halted.
      */
     @Throws(IllegalStateException::class)
-    fun parse(oldTree: Tree? = null, callback: ParseCallback): Tree
+    fun parse(
+        encoding: InputEncoding = InputEncoding.UTF_8,
+        oldTree: Tree? = null,
+        progressCallback: ParseProgressCallback? = null,
+        readCallback: ParseReadCallback
+    ): Tree
 
     /**
      * Instruct the parser to start the next [parse] from the beginning.
      *
-     * If the parser previously failed because of a [timeout][timeoutMicros],
-     * then by default, it will resume where it left off. If you don't
-     * want to resume, and instead intend to use this parser to parse
-     * some other document, you must call this method first.
+     * If parsing was previously halted, then by default, it will resume where
+     * it left off. If you don't want to resume, and instead intend to use this
+     * parser to parse some other document, you must call this method first.
      */
     fun reset()
 

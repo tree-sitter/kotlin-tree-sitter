@@ -1,17 +1,27 @@
 import java.io.OutputStream.nullOutputStream
-import java.net.URI
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.kotlin.dsl.support.useToRun
-import org.jetbrains.dokka.base.DokkaBase
-import org.jetbrains.dokka.base.DokkaBaseConfiguration
+import org.jetbrains.dokka.gradle.tasks.DokkaGeneratePublicationTask
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
-import org.jetbrains.kotlin.konan.target.PlatformManager
 
 inline val File.unixPath: String
     get() = if (!os.isWindows) path else path.replace("\\", "/")
+
+fun KotlinNativeTarget.treesitter() {
+    compilations.configureEach {
+        cinterops.register("treesitter") {
+            val srcDir = treesitterDir.resolve("lib/src")
+            val includeDir = treesitterDir.resolve("lib/include")
+            includeDirs.allHeaders(srcDir, includeDir)
+            includeDirs.headerFilterOnly(includeDir)
+            extraOpts("-libraryPath", libsDir.dir(konanTarget.name))
+        }
+    }
+}
 
 val os: OperatingSystem = OperatingSystem.current()
 val libsDir = layout.buildDirectory.get().dir("libs")
@@ -25,6 +35,7 @@ plugins {
     alias(libs.plugins.kotlin.mpp)
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotest)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.dokka)
 }
 
@@ -32,6 +43,10 @@ buildscript {
     dependencies {
         classpath(libs.dokka.base)
     }
+}
+
+dependencyLocking {
+    lockAllConfigurations()
 }
 
 kotlin {
@@ -42,30 +57,15 @@ kotlin {
         publishLibraryVariants("release")
     }
 
-    when {
-        os.isLinux -> listOf(linuxX64(), linuxArm64())
-        os.isWindows -> listOf(mingwX64())
-        os.isMacOsX -> listOf(
-            macosArm64(),
-            macosX64(),
-            iosArm64(),
-            iosSimulatorArm64()
-        )
-        else -> {
-            val arch = System.getProperty("os.arch")
-            throw GradleException("Unsupported platform: $os ($arch)")
-        }
-    }.forEach { target ->
-        target.compilations.configureEach {
-            cinterops.create("treesitter") {
-                val srcDir = treesitterDir.resolve("lib/src")
-                val includeDir = treesitterDir.resolve("lib/include")
-                includeDirs.allHeaders(srcDir, includeDir)
-                includeDirs.headerFilterOnly(includeDir)
-                extraOpts("-libraryPath", libsDir.dir(konanTarget.name))
-            }
-        }
-    }
+    linuxX64 { treesitter() }
+    linuxArm64 { treesitter() }
+    mingwX64 { treesitter() }
+    macosArm64 { treesitter() }
+    macosX64 { treesitter() }
+    iosArm64 { treesitter() }
+    iosSimulatorArm64 { treesitter() }
+
+    applyDefaultHierarchyTemplate()
 
     jvmToolchain(17)
 
@@ -95,6 +95,7 @@ kotlin {
         jvmTest {
             dependencies {
                 implementation(libs.bundles.kotest.junit)
+                implementation(libs.kotest.symbolprocessor)
             }
         }
 
@@ -117,7 +118,6 @@ android {
     defaultConfig {
         minSdk = (property("sdk.version.min") as String).toInt()
         ndk {
-            moduleName = "ktreesitter"
             //noinspection ChromeOsAbiSupport
             abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
         }
@@ -148,7 +148,7 @@ android {
     }
 }
 
-tasks.create<Jar>("javadocJar") {
+tasks.register<Jar>("javadocJar") {
     group = "documentation"
     archiveClassifier.set("javadoc")
     from(files(rootDir.resolve("README.md")))
@@ -214,31 +214,33 @@ signing {
     sign(publishing.publications)
 }
 
-tasks.dokkaHtml {
+dokka {
     val tmpDir = layout.buildDirectory.get().dir("tmp")
     val ref = System.getenv("GITHUB_SHA")?.subSequence(0, 7) ?: "master"
     val url = "https://github.com/tree-sitter/kotlin-tree-sitter/blob/$ref/ktreesitter"
 
-    inputs.file(file("README.md"))
-
     moduleName.set("KTreeSitter")
 
-    pluginConfiguration<DokkaBase, DokkaBaseConfiguration> {
+    pluginsConfiguration.html {
         footerMessage = "© 2024 tree-sitter"
         homepageLink = "https://tree-sitter.github.io/tree-sitter/"
-        customAssets = listOf(rootDir.resolve("gradle/logo-icon.svg"))
+        customAssets.from(rootDir.resolve("gradle/logo-icon.svg"))
     }
 
     dokkaSourceSets.configureEach {
         jdkVersion.set(17)
-        noStdlibLink.set(true)
         includes.from(tmpDir.file("README.md"))
-        externalDocumentationLink("https://kotlinlang.org/api/core/")
         sourceLink {
+            remoteUrl(url)
             localDirectory.set(projectDir)
-            remoteUrl.set(URI.create(url).toURL())
         }
     }
+}
+
+tasks.withType<DokkaGeneratePublicationTask> {
+    val tmpDir = layout.buildDirectory.get().dir("tmp")
+
+    inputs.file("README.md")
 
     doFirst {
         copy {
@@ -264,6 +266,8 @@ tasks.withType<KotlinJvmCompile>().configureEach {
     }
 }
 
+// TODO: replace with cmake
+@Suppress("DEPRECATION")
 tasks.withType<CInteropProcess>().configureEach {
     if (name.startsWith("cinteropTest")) return@configureEach
 
@@ -273,17 +277,16 @@ tasks.withType<CInteropProcess>().configureEach {
         "${konanTarget.family.staticPrefix}tree-sitter.${konanTarget.family.staticSuffix}"
     ).asFile
     val objectFile = treesitterDir.resolve("lib.o")
-    val loader = PlatformManager(konanHome.get(), false, konanDataDir.orNull).loader(konanTarget)
 
     doFirst {
-        if (!File(loader.absoluteTargetToolchain).isDirectory) loader.downloadDependencies()
-
         val argsFile = File.createTempFile("args", null)
         argsFile.deleteOnExit()
         argsFile.writer().useToRun {
             write("-I" + treesitterDir.resolve("lib/src").unixPath + "\n")
             write("-I" + treesitterDir.resolve("lib/include").unixPath + "\n")
             write("-DTREE_SITTER_HIDE_SYMBOLS\n")
+            write("-D_DEFAULT_SOURCE\n")
+            write("-D_POSIX_C_SOURCE=200112L\n")
             write("-fvisibility=hidden\n")
             write("-std=c11\n")
             write("-O2\n")

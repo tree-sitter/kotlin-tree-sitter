@@ -54,12 +54,21 @@
 #endif
 
 typedef struct {
+    JNIEnv *env;
+    jobject callback;
+} ProgressPayload;
+
+typedef struct {
+    jfieldID Boolean_value;
     jfieldID InputEdit_newEndByte;
     jfieldID InputEdit_newEndPoint;
     jfieldID InputEdit_oldEndByte;
     jfieldID InputEdit_oldEndPoint;
     jfieldID InputEdit_startByte;
     jfieldID InputEdit_startPoint;
+    jfieldID InputEncoding_UTF_8;
+    jfieldID InputEncoding_UTF_16LE;
+    jfieldID InputEncoding_UTF_16BE;
     jfieldID Language_self;
     jfieldID LookaheadIterator_self;
     jfieldID Node_context;
@@ -75,14 +84,13 @@ typedef struct {
     jfieldID Parser_timeoutMicros;
     jfieldID Point_column;
     jfieldID Point_row;
-    jfieldID Query_captureNames;
-    jfieldID Query_cursor;
+    jfieldID QueryCursor_matchLimit;
+    jfieldID QueryCursor_maxStartDepth;
+    jfieldID QueryCursor_self;
+    jfieldID QueryCursor_timeoutMicros;
     jfieldID Query_language;
-    jfieldID Query_matchLimit;
-    jfieldID Query_maxStartDepth;
     jfieldID Query_self;
     jfieldID Query_source;
-    jfieldID Query_timeoutMicros;
     jfieldID Range_endByte;
     jfieldID Range_endPoint;
     jfieldID Range_startByte;
@@ -93,20 +101,25 @@ typedef struct {
     jfieldID Tree_self;
     jfieldID Tree_source;
     jfieldID UInt_data;
+    jfieldID UShort_data;
 } FieldCache;
 
 typedef struct {
     jmethodID ArrayList_add;
     jmethodID ArrayList_init;
+    jmethodID Boolean_init;
     jmethodID CharSequence_toString;
+    jmethodID Function1_invoke;
     jmethodID Function2_invoke;
     jmethodID Language_init;
+    jmethodID Language$Metadata_init;
     jmethodID List_get;
     jmethodID List_size;
     jmethodID Node_init;
     jmethodID Pair_init;
     jmethodID Point_init;
     jmethodID QueryCapture_init;
+    jmethodID QueryCursor_init;
     jmethodID QueryError$Capture_init;
     jmethodID QueryError$Field_init;
     jmethodID QueryError$NodeType_init;
@@ -115,19 +128,22 @@ typedef struct {
     jmethodID QueryMatch_init;
     jmethodID Range_init;
     jmethodID Tree_init;
-    jmethodID UInt_constructor;
-    jmethodID UInt_box;
+    jmethodID Triple_init;
 } MethodCache;
 
 typedef struct {
     jclass ArrayList;
+    jclass Boolean;
     jclass CharSequence;
+    jclass Function1;
     jclass Function2;
     jclass IllegalArgumentException;
     jclass IllegalStateException;
     jclass IndexOutOfBoundsException;
     jclass InputEdit;
+    jclass InputEncoding;
     jclass Language;
+    jclass Language$Metadata;
     jclass List;
     jclass LookaheadIterator;
     jclass Node;
@@ -137,6 +153,7 @@ typedef struct {
     jclass Point;
     jclass Query;
     jclass QueryCapture;
+    jclass QueryCursor;
     jclass QueryError$Capture;
     jclass QueryError$Field;
     jclass QueryError$NodeType;
@@ -146,7 +163,9 @@ typedef struct {
     jclass Range;
     jclass Tree;
     jclass TreeCursor;
+    jclass Triple;
     jclass UInt;
+    jclass UShort;
 } ClassCache;
 
 extern FieldCache global_field_cache;

@@ -155,6 +155,22 @@ expect class Node {
     fun namedChild(index: UInt): Node?
 
     /**
+     * Get the node's first child that contains
+     * or starts after the given byte offset.
+     *
+     * @since 0.25.0
+     */
+    fun firstChildForByte(byte: UInt): Node?
+
+    /**
+     * Get the node's first _named_ child that contains
+     * or starts after the given byte offset.
+     *
+     * @since 0.25.0
+     */
+    fun firstNamedChildForByte(byte: UInt): Node?
+
+    /**
      * Get the node's child with the given field ID, if any.
      *
      * @see [Language.fieldIdForName]
@@ -186,13 +202,6 @@ expect class Node {
      */
     @Throws(IndexOutOfBoundsException::class)
     fun fieldNameForNamedChild(index: UInt): String?
-
-    /** Get the child of the node that contains the given descendant, if any. */
-    @Deprecated(
-        "This method will not return a direct descendant",
-        ReplaceWith("childWithDescendant(descendant)", "io.github.treesitter.ktreesitter.Node")
-    )
-    fun childContainingDescendant(descendant: Node): Node?
 
     /**
      * Get the node that contains the given descendant, if any.

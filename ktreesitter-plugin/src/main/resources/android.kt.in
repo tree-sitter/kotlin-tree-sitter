@@ -12,5 +12,4 @@ actual object @CLASS@ {
         System.loadLibrary("@LIBRARY@")
     }
 
-@METHODS@
-}
+@METHODS@}

@@ -21,6 +21,9 @@ extern const size_t Parser_methods_size;
 extern const JNINativeMethod Query_methods[];
 extern const size_t Query_methods_size;
 
+extern const JNINativeMethod QueryCursor_methods[];
+extern const size_t QueryCursor_methods_size;
+
 FieldCache global_field_cache = {0};
 MethodCache global_method_cache = {0};
 ClassCache global_class_cache = {0};
@@ -100,12 +103,14 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
 
     REGISTER_CLASS(Query);
     CACHE_FIELD(Query, self, "J");
-    CACHE_FIELD(Query, cursor, "J");
-    CACHE_FIELD(Query, matchLimit, "I");
-    CACHE_FIELD(Query, maxStartDepth, "I");
     CACHE_FIELD(Query, language, "L" PACKAGE "Language;");
-    CACHE_FIELD(Query, captureNames, "Ljava/util/List;");
     CACHE_FIELD(Query, source, "Ljava/lang/String;");
+
+    REGISTER_CLASS(QueryCursor);
+    CACHE_FIELD(QueryCursor, self, "J");
+    CACHE_FIELD(QueryCursor, matchLimit, "I");
+    CACHE_FIELD(QueryCursor, maxStartDepth, "I");
+    CACHE_FIELD(QueryCursor, timeoutMicros, "J");
 
     REGISTER_CLASS(Parser);
     CACHE_FIELD(Parser, self, "J");
@@ -134,6 +139,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
     CACHE_FIELD(InputEdit, oldEndPoint, "L" PACKAGE "Point;");
     CACHE_FIELD(InputEdit, newEndPoint, "L" PACKAGE "Point;");
 
+    CACHE_CLASS(PACKAGE, Language$Metadata);
+    CACHE_METHOD(Language$Metadata, init, "<init>", "(Lkotlin/Triple;)V");
+
     CACHE_CLASS(PACKAGE, QueryCapture);
     CACHE_METHOD(QueryCapture, init, "<init>", "(L" PACKAGE "Node;Ljava/lang/String;)V");
 
@@ -143,6 +151,11 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
     CACHE_CLASS(PACKAGE, Parser$LogType);
     CACHE_STATIC_FIELD(Parser$LogType, LEX, "L" PACKAGE "Parser$LogType;");
     CACHE_STATIC_FIELD(Parser$LogType, PARSE, "L" PACKAGE "Parser$LogType;");
+
+    CACHE_CLASS(PACKAGE, InputEncoding);
+    CACHE_STATIC_FIELD(InputEncoding, UTF_8, "L" PACKAGE "InputEncoding;");
+    CACHE_STATIC_FIELD(InputEncoding, UTF_16LE, "L" PACKAGE "InputEncoding;");
+    CACHE_STATIC_FIELD(InputEncoding, UTF_16BE, "L" PACKAGE "InputEncoding;");
 
     CACHE_CLASS(PACKAGE, QueryError$Capture);
     CACHE_METHOD(QueryError$Capture, init, "<init>", "(IILjava/lang/String;)V");
@@ -159,6 +172,10 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
     CACHE_CLASS(PACKAGE, QueryError$Structure);
     CACHE_METHOD(QueryError$Structure, init, "<init>", "(II)V");
 
+    CACHE_CLASS("java/lang/", Boolean);
+    CACHE_FIELD(Boolean, value, "Z");
+    CACHE_METHOD(Boolean, init, "<init>", "(Z)V");
+
     CACHE_CLASS("java/lang/", CharSequence);
     CACHE_METHOD(CharSequence, toString, "toString", "()Ljava/lang/String;");
 
@@ -173,8 +190,19 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
     CACHE_CLASS("kotlin/", Pair);
     CACHE_METHOD(Pair, init, "<init>", "(Ljava/lang/Object;Ljava/lang/Object;)V");
 
+    CACHE_CLASS("kotlin/", Triple);
+    CACHE_METHOD(Triple, init, "<init>",
+                 "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;)V");
+
     CACHE_CLASS("kotlin/", UInt);
     CACHE_FIELD(UInt, data, "I");
+
+    CACHE_CLASS("kotlin/", UShort);
+    CACHE_FIELD(UShort, data, "S");
+
+    CACHE_CLASS("kotlin/jvm/functions/", Function1);
+    CACHE_METHOD(Function1, invoke, "invoke",
+                 "(Ljava/lang/Object;)Ljava/lang/Object;");
 
     CACHE_CLASS("kotlin/jvm/functions/", Function2);
     CACHE_METHOD(Function2, invoke, "invoke",
@@ -197,12 +225,17 @@ JNIEXPORT void JNI_OnUnload(JavaVM *vm, void *_reserved) {
         return;
 
     (*env)->DeleteGlobalRef(env, global_class_cache.ArrayList);
+    (*env)->DeleteGlobalRef(env, global_class_cache.Boolean);
     (*env)->DeleteGlobalRef(env, global_class_cache.CharSequence);
+    (*env)->DeleteGlobalRef(env, global_class_cache.Function1);
+    (*env)->DeleteGlobalRef(env, global_class_cache.Function2);
     (*env)->DeleteGlobalRef(env, global_class_cache.IllegalArgumentException);
     (*env)->DeleteGlobalRef(env, global_class_cache.IllegalStateException);
     (*env)->DeleteGlobalRef(env, global_class_cache.IndexOutOfBoundsException);
     (*env)->DeleteGlobalRef(env, global_class_cache.InputEdit);
+    (*env)->DeleteGlobalRef(env, global_class_cache.InputEncoding);
     (*env)->DeleteGlobalRef(env, global_class_cache.Language);
+    (*env)->DeleteGlobalRef(env, global_class_cache.Language$Metadata);
     (*env)->DeleteGlobalRef(env, global_class_cache.List);
     (*env)->DeleteGlobalRef(env, global_class_cache.LookaheadIterator);
     (*env)->DeleteGlobalRef(env, global_class_cache.Node);
@@ -210,6 +243,7 @@ JNIEXPORT void JNI_OnUnload(JavaVM *vm, void *_reserved) {
     (*env)->DeleteGlobalRef(env, global_class_cache.Parser);
     (*env)->DeleteGlobalRef(env, global_class_cache.Point);
     (*env)->DeleteGlobalRef(env, global_class_cache.Query);
+    (*env)->DeleteGlobalRef(env, global_class_cache.QueryCursor);
     (*env)->DeleteGlobalRef(env, global_class_cache.QueryError$Capture);
     (*env)->DeleteGlobalRef(env, global_class_cache.QueryError$Field);
     (*env)->DeleteGlobalRef(env, global_class_cache.QueryError$NodeType);
@@ -220,5 +254,7 @@ JNIEXPORT void JNI_OnUnload(JavaVM *vm, void *_reserved) {
     (*env)->DeleteGlobalRef(env, global_class_cache.Range);
     (*env)->DeleteGlobalRef(env, global_class_cache.Tree);
     (*env)->DeleteGlobalRef(env, global_class_cache.TreeCursor);
+    (*env)->DeleteGlobalRef(env, global_class_cache.Triple);
     (*env)->DeleteGlobalRef(env, global_class_cache.UInt);
+    (*env)->DeleteGlobalRef(env, global_class_cache.UShort);
 }

@@ -2,11 +2,22 @@ import java.io.OutputStream.nullOutputStream
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.kotlin.dsl.support.useToRun
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
-import org.jetbrains.kotlin.konan.target.PlatformManager
 
 inline val File.unixPath: String
     get() = if (!os.isWindows) path else path.replace("\\", "/")
+
+fun KotlinNativeTarget.treesitterJava() {
+    compilations.configureEach {
+        cinterops.create("treesitterJava") {
+            definitionFile.set(generateTask.interopFile)
+            includeDirs.allHeaders(grammarDir.resolve("bindings/c"))
+            extraOpts("-libraryPath", libsDir.dir(konanTarget.name))
+            tasks.getByName(interopProcessingTaskName).mustRunAfter(generateTask)
+        }
+    }
+}
 
 val os: OperatingSystem = OperatingSystem.current()
 val libsDir = layout.buildDirectory.get().dir("libs")
@@ -28,10 +39,6 @@ grammar {
     grammarName = project.name
     className = "TreeSitterJava"
     packageName = "io.github.treesitter.ktreesitter.java"
-    files = arrayOf(
-        // grammarDir.resolve("src/scanner.c"),
-        grammarDir.resolve("src/parser.c")
-    )
 }
 
 val generateTask = tasks.generateGrammarFiles.get()
@@ -44,29 +51,15 @@ kotlin {
         publishLibraryVariants("release")
     }
 
-    when {
-        os.isLinux -> listOf(linuxX64(), linuxArm64())
-        os.isWindows -> listOf(mingwX64())
-        os.isMacOsX -> listOf(
-            macosArm64(),
-            macosX64(),
-            iosArm64(),
-            iosSimulatorArm64()
-        )
-        else -> {
-            val arch = System.getProperty("os.arch")
-            throw GradleException("Unsupported platform: $os ($arch)")
-        }
-    }.forEach { target ->
-        target.compilations.configureEach {
-            cinterops.create(grammar.interopName.get()) {
-                defFileProperty.set(generateTask.interopFile.asFile)
-                includeDirs.allHeaders(grammarDir.resolve("bindings/c"))
-                extraOpts("-libraryPath", libsDir.dir(konanTarget.name))
-                tasks.getByName(interopProcessingTaskName).mustRunAfter(generateTask)
-            }
-        }
-    }
+    linuxX64 { treesitterJava() }
+    linuxArm64 { treesitterJava() }
+    mingwX64 { treesitterJava() }
+    macosArm64 { treesitterJava() }
+    macosX64 { treesitterJava() }
+    iosArm64 { treesitterJava() }
+    iosSimulatorArm64 { treesitterJava() }
+
+    applyDefaultHierarchyTemplate()
 
     jvmToolchain(17)
 
@@ -102,7 +95,6 @@ android {
     defaultConfig {
         minSdk = (property("sdk.version.min") as String).toInt()
         ndk {
-            moduleName = grammar.libraryName.get()
             //noinspection ChromeOsAbiSupport
             abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
         }
@@ -121,26 +113,28 @@ android {
     }
 }
 
+// TODO: replace with cmake
+@Suppress("DEPRECATION")
 tasks.withType<CInteropProcess>().configureEach {
     if (name.startsWith("cinteropTest")) return@configureEach
 
-    val grammarFiles = grammar.files.get()
+    val srcDir = grammarDir.resolve("src")
+    val grammarFiles =
+        if (!srcDir.resolve("scanner.c").isFile) arrayOf(srcDir.resolve("parser.c"))
+        else arrayOf(srcDir.resolve("parser.c"), srcDir.resolve("scanner.c"))
     val grammarName = grammar.grammarName.get()
     val runKonan = File(konanHome.get()).resolve("bin")
         .resolve(if (os.isWindows) "run_konan.bat" else "run_konan").path
     val libFile = libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a").asFile
     val objectFiles = grammarFiles.map {
-        grammarDir.resolve(it.nameWithoutExtension + ".o").path
+        srcDir.resolve(it.nameWithoutExtension + ".o").path
     }.toTypedArray()
-    val loader = PlatformManager(konanHome.get(), false, konanDataDir.orNull).loader(konanTarget)
 
     doFirst {
-        if (!File(loader.absoluteTargetToolchain).isDirectory) loader.downloadDependencies()
-
         val argsFile = File.createTempFile("args", null)
         argsFile.deleteOnExit()
         argsFile.writer().useToRun {
-            write("-I" + grammarDir.resolve("src").unixPath + "\n")
+            write("-I" + srcDir.unixPath + "\n")
             write("-DTREE_SITTER_HIDE_SYMBOLS\n")
             write("-fvisibility=hidden\n")
             write("-std=c11\n")
@@ -169,7 +163,7 @@ tasks.withType<CInteropProcess>().configureEach {
     outputs.file(libFile)
 }
 
-tasks.create<Jar>("javadocJar") {
+tasks.register<Jar>("javadocJar") {
     group = "documentation"
     archiveClassifier.set("javadoc")
 }

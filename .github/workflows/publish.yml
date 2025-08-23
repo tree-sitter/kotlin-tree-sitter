@@ -54,7 +54,7 @@ jobs:
         with:
           submodules: true
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
@@ -124,7 +124,7 @@ jobs:
         with:
           submodules: true
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
@@ -132,20 +132,20 @@ jobs:
           cache-dependency-path: |
             gradle/libs.versions.toml
             gradle/wrapper/gradle-wrapper.properties
+      - name: Set up Kotlin/Native
+        uses: ObserverOfTime/setup-konan-action@v1
+        with:
+          kotlin_version: 2.2.10
       - name: Set up cross compilation
-        run: sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
-        if: matrix.platform == 'Linux' || matrix.platform == 'common'
-      - name: Restore Kotlin/Native prebuilt
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
-          key: konan-${{runner.os}}-prebuilt-1.9
-      - name: Restore Kotlin/Native dependencies
-        uses: actions/cache/restore@v4
-        if: matrix.platform != 'JVM' && matrix.platform != 'Android'
-        with:
-          path: ${{runner.tool_cache}}/konan/dependencies
-          key: konan-${{runner.os}}-dependencies
+        if: matrix.platform == 'Linux'
+        run: |-
+          sudo apt-get update
+          sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
+      - name: Set up Ninja
+        if: matrix.platform == 'Android'
+        run: |-
+          sudo apt-get update
+          sudo apt-get install -qy ninja-build
       - name: Download library artifacts
         uses: actions/download-artifact@v5
         if: matrix.platform == 'JVM'
@@ -153,17 +153,11 @@ jobs:
           path: ktreesitter/src/jvmMain/resources/lib
           pattern: ktreesitter-lib-*
           merge-multiple: true
-      - name: Set up Ninja
-        if: matrix.platform == 'Android'
-        run: |-
-          sudo apt-get update
-          sudo apt-get install -y ninja-build
       - name: Build packages
-        run: ./gradlew --no-daemon ${{matrix.targets}}
+        run: ./gradlew --no-daemon -Pcmake.version=3.31.6 ${{matrix.targets}}
         env:
           SIGNING_KEY: ${{secrets.SIGNING_KEY}}
           SIGNING_PASSWORD: ${{secrets.SIGNING_PASSWORD}}
-          KONAN_DATA_DIR: ${{runner.tool_cache}}/konan
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -227,7 +221,7 @@ jobs:
         with:
           submodules: true
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
@@ -235,14 +229,12 @@ jobs:
           cache-dependency-path: |
             gradle/libs.versions.toml
             gradle/wrapper/gradle-wrapper.properties
-      - name: Restore Kotlin/Native prebuilt
-        uses: actions/cache/restore@v4
+      - name: Set up Kotlin/Native
+        uses: ObserverOfTime/setup-konan-action@v1
         with:
-          path: ${{runner.tool_cache}}/konan/kotlin-native-prebuilt-*
-          key: konan-${{runner.os}}-prebuilt-1.9
+          kotlin_version: 2.2.10
       - name: Publish Gradle plugin
         run: ./gradlew --no-daemon :ktreesitter-plugin:publishPlugins
         env:
-          KONAN_DATA_DIR: ${{runner.tool_cache}}/konan
           GRADLE_PUBLISH_KEY: ${{secrets.GRADLE_PUBLISH_KEY}}
           GRADLE_PUBLISH_SECRET: ${{secrets.GRADLE_PUBLISH_SECRET}}

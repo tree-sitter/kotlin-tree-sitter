@@ -18,13 +18,9 @@ actual class Query @Throws(QueryError::class) actual constructor(
     private val language: Language,
     private val source: String
 ) : AutoCloseable {
-    private val self: Long = init(language.self, source)
+    internal val self: Long = init(language.self, source)
 
-    private val cursor: Long = cursor()
-
-    private val captureNames: MutableList<String>
-
-    private val predicates: List<MutableList<QueryPredicate>>
+    internal val predicates: List<MutableList<QueryPredicate>>
 
     private val settingList: List<MutableMap<String, String?>>
 
@@ -33,25 +29,40 @@ actual class Query @Throws(QueryError::class) actual constructor(
     /** The number of patterns in the query. */
     @get:JvmName("getPatternCount")
     actual val patternCount: UInt
-        @FastNative external get
+        get() = nativePatternCount().toUInt()
 
     /** The number of captures in the query. */
     @get:JvmName("getCaptureCount")
+    @Deprecated("captureCount is deprecated.", ReplaceWith("captureNames.size"))
     actual val captureCount: UInt
-        @FastNative external get
+        get() = nativeCaptureCount().toUInt()
+
+    /**
+     * The capture names used in the query.
+     *
+     * @since 0.25.0
+     */
+    actual val captureNames: List<String>
+
+    /**
+     * The string literals used in the query.
+     *
+     * @since 0.25.0
+     */
+    actual val stringValues: List<String>
 
     init {
-        RefCleaner(this, CleanAction(self, cursor))
+        RefCleaner(this, CleanAction(self))
 
-        predicates = List(patternCount.toInt()) { mutableListOf() }
-        settingList = List(patternCount.toInt()) { mutableMapOf() }
-        assertionList = List(patternCount.toInt()) { mutableMapOf() }
-        captureNames = MutableList(captureCount.toInt()) {
+        predicates = List(nativePatternCount()) { mutableListOf() }
+        settingList = List(nativePatternCount()) { mutableMapOf() }
+        assertionList = List(nativePatternCount()) { mutableMapOf() }
+        captureNames = List(nativeCaptureCount()) {
             checkNotNull(captureNameForId(it)) {
                 "Failed to get capture name at index $it"
             }
         }
-        val stringValues = List(stringCount()) {
+        stringValues = List(stringCount()) {
             checkNotNull(stringValueForId(it)) {
                 "Failed to get string value at index $it"
             }
@@ -268,134 +279,15 @@ actual class Query @Throws(QueryError::class) actual constructor(
     }
 
     /**
-     * The maximum duration in microseconds that query
-     * execution should be allowed to take before halting.
+     * Execute the query on the given [Node].
      *
-     * Default: `0`
-     *
-     * @since 0.23.0
+     * @since 0.25.0
      */
-    @get:JvmName("getTimeoutMicros")
-    @set:JvmName("setTimeoutMicros")
-    actual var timeoutMicros: ULong
-        @FastNative external get
-
-        @FastNative external set
-
-    /**
-     * The maximum number of in-progress matches.
-     *
-     * Default: `UInt.MAX_VALUE`
-     *
-     * @throws [IllegalArgumentException] If the match limit is set to `0`.
-     */
-    @get:JvmName("getMatchLimit")
-    @set:JvmName("setMatchLimit")
-    actual var matchLimit: UInt
-        @FastNative external get
-
-        @FastNative external set
-
-    /**
-     * The maximum start depth for the query.
-     *
-     * This prevents cursors from exploring children nodes at a certain depth.
-     * Note that if a pattern includes many children, then they will still be checked.
-     *
-     * Default: `UInt.MAX_VALUE`
-     */
-    @get:JvmName("getMaxStartDepth")
-    @set:JvmName("setMaxStartDepth")
-    actual var maxStartDepth: UInt = UInt.MAX_VALUE
-        @FastNative external set
-
-    /**
-     * The range of bytes in which the query will be executed.
-     *
-     * Default: `UInt.MIN_VALUE..UInt.MAX_VALUE`
-     */
-    actual var byteRange: UIntRange = UInt.MIN_VALUE..UInt.MAX_VALUE
-        set(value) {
-            nativeSetByteRange(value.first.toInt(), value.last.toInt())
-            field = value
-        }
-
-    /**
-     * The range of points in which the query will be executed.
-     *
-     * Default: `Point.MIN..Point.MAX`
-     */
-    actual var pointRange: ClosedRange<Point> = Point.MIN..Point.MAX
-        set(value) {
-            nativeSetPointRange(value.start, value.endInclusive)
-            field = value
-        }
-
-    /**
-     * Check if the query exceeded its maximum number of
-     * in-progress matches during its last execution.
-     */
-    @get:JvmName("didExceedMatchLimit")
-    actual val didExceedMatchLimit: Boolean
-        @FastNative external get
-
-    /**
-     * Iterate over all the matches in the order that they were found.
-     *
-     * #### Example
-     *
-     * ```kotlin
-     * query.matches(tree.rootNode) {
-     *      if (name != "ieq?") return@matches true
-     *      val node = it[(args[0] as QueryPredicateArg.Capture).value].first()
-     *      val value = (args[1] as QueryPredicateArg.Literal).value
-     *      value.equals(node.text()?.toString(), ignoreCase = true)
-     *  }
-     * ```
-     *
-     * @param node The node that the query will run on.
-     * @param predicate A function that handles custom predicates.
-     */
+    @FastNative
     @JvmOverloads
-    actual fun matches(
-        node: Node,
-        predicate: QueryPredicate.(QueryMatch) -> Boolean
-    ): Sequence<QueryMatch> {
-        exec(node)
-        return sequence {
-            var match = nextMatch(node.tree)
-            while (match != null) {
-                val result = match.check(node.tree, predicate)
-                if (result != null) yield(result)
-                match = nextMatch(node.tree)
-            }
-        }
-    }
-
-    /**
-     * Iterate over all the individual captures in the order that they appear.
-     *
-     * This is useful if you don't care about _which_ pattern matched.
-     *
-     * @param node The node that the query will run on.
-     * @param predicate A function that handles custom predicates.
-     */
-    @JvmOverloads
-    actual fun captures(
-        node: Node,
-        predicate: QueryPredicate.(QueryMatch) -> Boolean
-    ): Sequence<Pair<UInt, QueryMatch>> {
-        exec(node)
-        return sequence {
-            var capture = nextCapture(node.tree)
-            while (capture != null) {
-                val index = capture.first
-                val match = capture.second.check(node.tree, predicate)
-                if (match != null) yield(index to match)
-                capture = nextCapture(node.tree)
-            }
-        }
-    }
+    @JvmName("exec")
+    actual operator fun invoke(node: Node, progressCallback: QueryProgressCallback?) =
+        QueryCursor(this, node, progressCallback)
 
     /**
      * Get the property settings for the given pattern index.
@@ -410,7 +302,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
     @Throws(IndexOutOfBoundsException::class)
     actual fun settings(index: UInt): Map<String, String?> {
         if (index >= patternCount)
-            throw IndexOutOfBoundsException("Pattern index $index is out of bounds")
+            throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
         return settingList[index]
     }
 
@@ -429,7 +321,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
     @Throws(IndexOutOfBoundsException::class)
     actual fun assertions(index: UInt): Map<String, Pair<String?, Boolean>> {
         if (index >= patternCount)
-            throw IndexOutOfBoundsException("Pattern index $index is out of bounds")
+            throw IndexOutOfBoundsException("Index $index exceeds count $patternCount")
         return assertionList[index]
     }
 
@@ -453,15 +345,9 @@ actual class Query @Throws(QueryError::class) actual constructor(
      * This prevents the capture from being returned in matches,
      * and also avoids most resource usage associated with recording
      * the capture. Currently, there is no way to undo this.
-     *
-     * @throws [NoSuchElementException] If the capture does not exist.
      */
-    @Throws(NoSuchElementException::class)
-    actual fun disableCapture(name: String) {
-        if (!captureNames.remove(name))
-            throw NoSuchElementException("Capture @$name does not exist")
-        nativeDisableCapture(name)
-    }
+    @FastNative
+    actual external fun disableCapture(name: String)
 
     /**
      * Get the byte offset where the given pattern starts in the query's source.
@@ -517,7 +403,6 @@ actual class Query @Throws(QueryError::class) actual constructor(
      * Check if a pattern is guaranteed to match
      * once a given byte offset is reached.
      */
-    @FastNative
     @JvmName("isPatternGuaranteedAtStep")
     @Throws(IndexOutOfBoundsException::class)
     actual fun isPatternGuaranteedAtStep(offset: UInt): Boolean {
@@ -528,17 +413,16 @@ actual class Query @Throws(QueryError::class) actual constructor(
 
     override fun toString() = "Query(language=$language, source=$source)"
 
-    override fun close() = delete(self, cursor)
+    override fun close() = delete(self)
+
+    @FastNative
+    private external fun nativePatternCount(): Int
+
+    @FastNative
+    private external fun nativeCaptureCount(): Int
 
     @FastNative
     private external fun stringCount(): Int
-
-    @FastNative
-    private external fun exec(node: Node)
-
-    private external fun nextMatch(tree: Tree): QueryMatch?
-
-    private external fun nextCapture(tree: Tree): Pair<UInt, QueryMatch>?
 
     @FastNative
     private external fun captureNameForId(index: Int): String?
@@ -547,29 +431,9 @@ actual class Query @Throws(QueryError::class) actual constructor(
     private external fun stringValueForId(index: Int): String?
 
     @FastNative
-    private external fun nativeSetByteRange(start: Int, end: Int)
-
-    @FastNative
-    private external fun nativeSetPointRange(start: Point, end: Point)
-
-    @FastNative
-    private external fun nativeDisableCapture(name: String)
-
-    @FastNative
     private external fun nativeIsPatternGuaranteedAtStep(index: Int): Boolean
 
     private external fun predicatesForPattern(index: Int): List<IntArray>?
-
-    private inline fun QueryMatch.check(
-        tree: Tree,
-        predicate: QueryPredicate.(QueryMatch) -> Boolean
-    ): QueryMatch? {
-        if (tree.text() == null) return this
-        val result = predicates[patternIndex].all {
-            if (it !is QueryPredicate.Generic) it(this) else predicate(it, this)
-        }
-        return if (result) this else null
-    }
 
     @Suppress("NOTHING_TO_INLINE")
     private inline operator fun <T> List<T>.get(index: UInt) = get(index.toInt())
@@ -580,8 +444,8 @@ actual class Query @Throws(QueryError::class) actual constructor(
     private inline val IntArray.type: Int
         inline get() = get(1)
 
-    private class CleanAction(private val query: Long, private val cursor: Long) : Runnable {
-        override fun run() = delete(query, cursor)
+    private class CleanAction(private val ptr: Long) : Runnable {
+        override fun run() = delete(ptr)
     }
 
     @Suppress("ConstPropertyName")
@@ -598,10 +462,6 @@ actual class Query @Throws(QueryError::class) actual constructor(
 
         @JvmStatic
         @CriticalNative
-        private external fun cursor(): Long
-
-        @JvmStatic
-        @CriticalNative
-        private external fun delete(query: Long, cursor: Long)
+        private external fun delete(self: Long)
     }
 }
