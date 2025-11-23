@@ -26,9 +26,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
@@ -40,7 +40,7 @@ jobs:
         id: ktlint
         run: $RUNNER_TOOL_CACHE/ktlint --reporter=sarif,output=build/reports/ktlint.sarif
       - name: Upload report
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: "!cancelled() && steps.ktlint.outcome == 'failure'"
         with:
           sarif_file: build/reports/ktlint.sarif
@@ -51,9 +51,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
@@ -67,7 +67,7 @@ jobs:
           java -jar $RUNNER_TOOL_CACHE/detekt-cli.jar --build-upon-default-config
           --jvm-target 17 -c .github/detekt.yml -r sarif:build/reports/detekt.sarif
       - name: Upload report
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: "!cancelled() && steps.detekt.outcome == 'failure'"
         with:
           sarif_file: build/reports/detekt.sarif
