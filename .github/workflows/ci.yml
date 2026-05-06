@@ -140,6 +140,9 @@ jobs:
         env:
           CMAKE_INSTALL_LIBDIR: lib/${{matrix.lib_platform}}/${{matrix.lib_arch}}
       - name: Run tests
+        # Force bash on Windows runners so PowerShell does not split
+        # `-Pcmake.version=3.31.6` into separate tokens.
+        shell: bash
         run: ./gradlew --no-daemon -Pcmake.version=3.31.6 ${{matrix.targets}}
       - name: Report test results
         uses: mikepenz/action-junit-report@v5
