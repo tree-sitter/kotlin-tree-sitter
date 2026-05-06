@@ -104,9 +104,8 @@ jlong query_init(JNIEnv *env, jclass _class, jlong language, jstring source) {
     return -1;
 }
 
-void query_delete CRITICAL_ARGS(jlong query, jlong cursor) {
+void query_delete CRITICAL_ARGS(jlong query) {
     ts_query_delete((TSQuery *)query);
-    ts_query_cursor_delete((TSQueryCursor *)cursor);
 }
 
 jint query_native_pattern_count(JNIEnv *env, jobject this) {

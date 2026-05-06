@@ -13,7 +13,9 @@ static bool query_progress_callback(TSQueryCursorState *state) {
 
 jlong query_cursor_init CRITICAL_NO_ARGS() { return (jlong)ts_query_cursor_new(); }
 
-void query_cursor_delete CRITICAL_ARGS(jlong query) { ts_query_delete((TSQuery *)query); }
+void query_cursor_delete CRITICAL_ARGS(jlong cursor) {
+    ts_query_cursor_delete((TSQueryCursor *)cursor);
+}
 
 jlong query_cursor_get_timeout_micros(JNIEnv *env, jobject this) {
     TSQueryCursor *cursor = GET_POINTER(TSQueryCursor, this, QueryCursor_self);
