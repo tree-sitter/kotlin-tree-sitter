@@ -295,9 +295,11 @@ public abstract class GrammarFilesTask extends DefaultTask {
         var grammarSrcDir = grammarDir.toPath().resolve("src");
         var scannerFile = grammarSrcDir.resolve("scanner.c");
         if (!scannerFile.toFile().exists()) {
-            return grammarSrcDir.resolve("parser.c").toString();
+            return relative(grammarSrcDir.resolve("parser.c")).toString();
         }
-        return String.format("%s %s", grammarSrcDir.resolve("parser.c"), scannerFile);
+        return String.format("%s %s",
+            relative(grammarSrcDir.resolve("parser.c")),
+            relative(scannerFile));
     }
 
     private String readResource(String file) throws GradleException {
