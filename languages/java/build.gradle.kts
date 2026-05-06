@@ -127,7 +127,7 @@ tasks.withType<CInteropProcess>().configureEach {
         .resolve(if (os.isWindows) "run_konan.bat" else "run_konan").path
     val libFile = libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a").asFile
     val objectFiles = grammarFiles.map {
-        srcDir.resolve(it.nameWithoutExtension + ".o").path
+        grammarDir.resolve(it.nameWithoutExtension + ".o").path
     }.toTypedArray()
 
     doFirst {
