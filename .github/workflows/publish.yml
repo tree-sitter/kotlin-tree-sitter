@@ -50,7 +50,7 @@ jobs:
               -DCMAKE_OSX_ARCHITECTURES=arm64
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: true
       - name: Set up Java
@@ -74,7 +74,7 @@ jobs:
           cmake --build .cmake/build --config Release
           cmake --install .cmake/build --config Release --prefix .cmake/build
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ktreesitter-lib-${{matrix.platform}}-${{matrix.arch}}
           path: ktreesitter/.cmake/build/lib/**
@@ -120,7 +120,7 @@ jobs:
               :ktreesitter:publishIosArm64PublicationToLocalRepository
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: true
       - name: Set up Java
@@ -147,7 +147,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -qy ninja-build
       - name: Download library artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         if: matrix.platform == 'JVM'
         with:
           path: ktreesitter/src/jvmMain/resources/lib
@@ -159,7 +159,7 @@ jobs:
           SIGNING_KEY: ${{secrets.SIGNING_KEY}}
           SIGNING_PASSWORD: ${{secrets.SIGNING_PASSWORD}}
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ktreesitter-jars-${{matrix.platform == 'macOS/iOS' && 'macOS-iOS' || matrix.platform}}
           path: |
@@ -180,7 +180,7 @@ jobs:
       SONATYPE_AUTH: "Authorization: Bearer ${{secrets.SONATYPE_TOKEN}}"
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           path: ktreesitter
           pattern: ktreesitter-jars-*
@@ -217,7 +217,7 @@ jobs:
       url: https://plugins.gradle.org/plugin/io.github.tree-sitter.ktreesitter-plugin
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: true
       - name: Set up Java

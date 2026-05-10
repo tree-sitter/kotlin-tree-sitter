@@ -32,7 +32,7 @@ jobs:
       url: ${{steps.deployment.outputs.page_url}}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: true
       - name: Set up Java
@@ -68,4 +68,4 @@ jobs:
           path: ktreesitter/build/dokka/html
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
