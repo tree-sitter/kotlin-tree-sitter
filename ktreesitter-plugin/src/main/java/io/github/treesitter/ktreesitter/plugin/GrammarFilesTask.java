@@ -268,11 +268,14 @@ public abstract class GrammarFilesTask extends DefaultTask {
 
     private void generateCmakeLists(Path srcDir) throws GradleException {
         var jniBinding = srcDir.resolve("jni").resolve("binding.c");
-        var includeDir = relative(grammarDir.toPath().resolve("bindings/c"));
+        var cBindingDir = grammarDir.toPath().resolve("bindings/c");
+        var includeDirs = String.format(
+            "%s %s", relative(cBindingDir), relative(cBindingDir.resolve("tree-sitter"))
+        );
         var sources = String.format("%s %s", relative(jniBinding), srcFiles());
         var template = readResource("CMakeLists.txt.in")
             .replace("@LIBRARY@", libraryName)
-            .replace("@INCLUDE@", includeDir.toString())
+            .replace("@INCLUDE@", includeDirs)
             .replace("@SOURCES@", sources);
         writeFile(getCmakeListsFile().get().getAsFile(), template);
     }
