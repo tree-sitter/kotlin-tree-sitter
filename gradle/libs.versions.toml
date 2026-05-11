@@ -1,8 +1,8 @@
 [versions]
-kotlin-stdlib = "2.2.10"
+kotlin-stdlib = "2.3.21"
 android-gradle = {strictly = "8.11.1"}
-kotest = "6.0.0"
-dokka = "2.0.0"
+kotest = "6.1.11"
+dokka = "2.2.0"
 
 [libraries]
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin-stdlib" }
@@ -11,7 +11,7 @@ kotest-symbolprocessor = { module = "io.kotest:kotest-framework-symbol-processor
 kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 kotest-junit-runner = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
 kotest-junit-reporter = { module = "io.kotest:kotest-extensions-junitxml", version.ref = "kotest" }
-kotest-android-runner = { module = "br.com.colman:kotest-runner-android", version = "1.2.0" }
+kotest-android-runner = { module = "br.com.colman:kotest-runner-android", version = "1.2.2" }
 androidx-test-runner = { module = "androidx.test:runner", version = "1.7.0" }
 dokka-base = { module = "org.jetbrains.dokka:dokka-base", version.ref = "dokka" }
 
@@ -19,7 +19,7 @@ dokka-base = { module = "org.jetbrains.dokka:dokka-base", version.ref = "dokka" 
 kotlin-mpp = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin-stdlib" }
 android-library = { id = "com.android.library", version.ref = "android-gradle" }
 kotest = { id = "io.kotest", version.ref = "kotest" }
-ksp = { id = "com.google.devtools.ksp", version = "2.2.10-2.0.2" }
+ksp = { id = "com.google.devtools.ksp", version = "2.3.7" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 
 [bundles]
