@@ -132,10 +132,11 @@ jobs:
           cache-dependency-path: |
             gradle/libs.versions.toml
             gradle/wrapper/gradle-wrapper.properties
-      - name: Set up Kotlin/Native
-        uses: ObserverOfTime/setup-konan-action@v1
+      - name: Cache Kotlin/Native dependencies
+        uses: actions/cache@v5
         with:
-          kotlin_version: 2.2.10
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ runner.arch }}-2.2.10
       - name: Set up cross compilation
         if: matrix.platform == 'Linux'
         run: |-
@@ -154,6 +155,9 @@ jobs:
           pattern: ktreesitter-lib-*
           merge-multiple: true
       - name: Build packages
+        # Force bash on Windows runners so PowerShell does not split
+        # `-Pcmake.version=3.31.6` into separate tokens.
+        shell: bash
         run: ./gradlew --no-daemon -Pcmake.version=3.31.6 ${{matrix.targets}}
         env:
           SIGNING_KEY: ${{secrets.SIGNING_KEY}}
@@ -229,10 +233,11 @@ jobs:
           cache-dependency-path: |
             gradle/libs.versions.toml
             gradle/wrapper/gradle-wrapper.properties
-      - name: Set up Kotlin/Native
-        uses: ObserverOfTime/setup-konan-action@v1
+      - name: Cache Kotlin/Native dependencies
+        uses: actions/cache@v5
         with:
-          kotlin_version: 2.2.10
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ runner.arch }}-2.2.10
       - name: Publish Gradle plugin
         run: ./gradlew --no-daemon :ktreesitter-plugin:publishPlugins
         env:
