@@ -48,14 +48,14 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.konan
-          key: konan-${{ runner.os }}-${{ runner.arch }}-2.2.10
+          key: konan-${{runner.os}}-${{runner.arch}}-2.2.21
       - name: Set up cross compilation
         run: |-
           sudo apt-get update
           sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
       - name: Build documentation
         run: >-
-          ./gradlew --no-daemon -Pcmake.version=3.31.6
+          ./gradlew --no-daemon -P "cmake.version=4.1.2"
           generateFiles :ktreesitter:dokkaGeneratePublicationHtml
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v5

@@ -4,5 +4,3 @@
 /gradlew.bat linguist-generated eol=crlf
 /.github/scripts/build-jni.ps1 eol=crlf
 /gradle/wrapper/gradle-wrapper.jar binary
-/settings-gradle.lockfile linguist-generated
-/ktreesitter/gradle.lockfile linguist-generated

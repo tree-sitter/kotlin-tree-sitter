@@ -45,10 +45,6 @@ buildscript {
     }
 }
 
-dependencyLocking {
-    lockAllConfigurations()
-}
-
 kotlin {
     jvm {}
 
