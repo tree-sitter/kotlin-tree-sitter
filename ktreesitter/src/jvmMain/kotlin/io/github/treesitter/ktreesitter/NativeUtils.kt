@@ -19,16 +19,19 @@ internal object NativeUtils {
                 os = "windows"
                 prefix = ""
             }
+
             "linux" in osName -> {
                 ext = "so"
                 os = "linux"
                 prefix = "lib"
             }
+
             "mac" in osName -> {
                 ext = "dylib"
                 os = "macos"
                 prefix = "lib"
             }
+
             else -> {
                 throw UnsupportedOperationException("Unsupported operating system: $osName")
             }

@@ -462,25 +462,30 @@ actual class Query @Throws(QueryError::class) actual constructor(
                         QueryError.Syntax(-1, -1)
                     }
                 }
+
                 TSQueryError.TSQueryErrorCapture -> {
                     val suffix = source.subSequence(offset.toInt(), source.length)
                     val end = suffix.indexOfFirst { !kts_is_valid_predicate_char(it.code) }
                     val error = suffix.subSequence(0, end.takeIf { it > -1 } ?: suffix.length)
                     QueryError.Capture(row, column, error.toString())
                 }
+
                 TSQueryError.TSQueryErrorNodeType -> {
                     val suffix = source.subSequence(offset.toInt(), source.length)
                     val end = suffix.indexOfFirst { !kts_is_valid_identifier_char(it.code) }
                     val error = suffix.subSequence(0, end.takeIf { it > -1 } ?: suffix.length)
                     QueryError.NodeType(row, column, error.toString())
                 }
+
                 TSQueryError.TSQueryErrorField -> {
                     val suffix = source.subSequence(offset.toInt(), source.length)
                     val end = suffix.indexOfFirst { !kts_is_valid_identifier_char(it.code) }
                     val error = suffix.subSequence(0, end.takeIf { it > -1 } ?: suffix.length)
                     QueryError.Field(row, column, error.toString())
                 }
+
                 TSQueryError.TSQueryErrorStructure -> QueryError.Structure(row, column)
+
                 // language errors are handled in the Language class
                 else -> IllegalStateException("Unexpected query error")
             }
