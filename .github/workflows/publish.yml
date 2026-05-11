@@ -118,6 +118,7 @@ jobs:
               :ktreesitter:publishMacosX64PublicationToLocalRepository
               :ktreesitter:publishMacosArm64PublicationToLocalRepository
               :ktreesitter:publishIosArm64PublicationToLocalRepository
+              :ktreesitter:publishIosSimulatorArm64PublicationToLocalRepository
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
