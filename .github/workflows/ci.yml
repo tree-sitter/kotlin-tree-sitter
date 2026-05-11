@@ -10,6 +10,8 @@ on:
       - gradle/**
       - gradle.properties
       - ktreesitter/gradle.lockfile
+      - .github/workflows/ci.yml
+      - .github/workflows/docs.yml
   pull_request:
     paths:
       - "/*.kt"
@@ -18,6 +20,8 @@ on:
       - gradle/**
       - gradle.properties
       - ktreesitter/gradle.lockfile
+      - .github/workflows/ci.yml
+      - .github/workflows/docs.yml
 
 concurrency:
   cancel-in-progress: true

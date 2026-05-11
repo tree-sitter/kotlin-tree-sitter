@@ -34,7 +34,7 @@ jobs:
           java-version: 17
       - name: Install ktlint
         run: |-
-          curl -sSLO https://github.com/pinterest/ktlint/releases/download/1.7.1/ktlint
+          curl -sSLO https://github.com/pinterest/ktlint/releases/download/1.8.0/ktlint
           chmod a+x ktlint && mv ktlint $RUNNER_TOOL_CACHE/ktlint
       - name: Run ktlint
         id: ktlint
@@ -45,7 +45,7 @@ jobs:
         with:
           sarif_file: build/reports/ktlint.sarif
           # FIXME: github/codeql-action#2215
-          checkout_path: ${{env.HOME}}
+          checkout_path: work/kotlin-tree-sitter
           category: ktlint
   detekt:
     runs-on: ubuntu-latest
