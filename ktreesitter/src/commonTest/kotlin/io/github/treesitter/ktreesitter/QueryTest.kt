@@ -164,4 +164,17 @@ class QueryTest :
                 query.isPatternGuaranteedAtStep(99U)
             }
         }
+
+        test("multiple predicates on same pattern") {
+            shouldNotThrowAny {
+                Query(
+                    language,
+                    """
+                ((identifier) @x
+                  (#eq? @x "foo")
+                  (#eq? @x "bar"))
+                    """.trimIndent()
+                )
+            }
+        }
     })

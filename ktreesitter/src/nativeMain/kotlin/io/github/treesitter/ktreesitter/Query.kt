@@ -279,7 +279,9 @@ actual class Query @Throws(QueryError::class) actual constructor(
                 }
 
                 j += nargs.toUInt() + 1U
-                tokens = interpretCPointer(tokens.rawValue + nargs)!!
+                tokens = interpretCPointer(
+                    tokens.rawValue + (nargs + 1L) * sizeOf<TSQueryPredicateStep>()
+                )!!
             }
         }
     }
