@@ -10,7 +10,7 @@ package io.github.treesitter.ktreesitter
  * The Tree-sitter library is generally backwards-compatible with languages
  * generated using older CLI versions, but is not forwards-compatible.
  */
-const val LANGUAGE_VERSION: UInt = 14U
+const val LANGUAGE_VERSION: UInt = 15U
 
 /** The earliest ABI version that is supported by the current version of the library. */
 const val MIN_COMPATIBLE_LANGUAGE_VERSION: UInt = 13U
