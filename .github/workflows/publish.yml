@@ -50,7 +50,7 @@ jobs:
               -DCMAKE_OSX_ARCHITECTURES=arm64
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: true
       - name: Set up Java
@@ -121,7 +121,7 @@ jobs:
               :ktreesitter:publishIosSimulatorArm64PublicationToLocalRepository
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: true
       - name: Set up Java
@@ -219,7 +219,7 @@ jobs:
       url: https://plugins.gradle.org/plugin/io.github.tree-sitter.ktreesitter-plugin
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: true
       - name: Set up Java
