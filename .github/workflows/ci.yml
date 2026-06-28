@@ -36,7 +36,7 @@ jobs:
     name: Generate grammar files
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: true
       - name: Set up Java
@@ -50,7 +50,7 @@ jobs:
             gradle/wrapper/gradle-wrapper.properties
             ktreesitter/gradle.lockfile
       - name: Cache Kotlin/Native dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.konan
           key: konan-${{runner.os}}-${{runner.arch}}-2.2.21
@@ -106,7 +106,7 @@ jobs:
               :ktreesitter:iosSimulatorArm64Test
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           submodules: true
       - name: Set up Java
@@ -119,7 +119,7 @@ jobs:
             gradle/libs.versions.toml
             gradle/wrapper/gradle-wrapper.properties
       - name: Cache Kotlin/Native dependencies
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/.konan
           key: konan-${{runner.os}}-${{runner.arch}}-2.2.21
