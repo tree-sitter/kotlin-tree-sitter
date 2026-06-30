@@ -18,11 +18,11 @@ static inline TSInputEncoding get_encoding(JNIEnv *env, jobject encoding) {
     }
     jobject UTF_16LE = GET_STATIC_FIELD(Object, InputEncoding, InputEncoding_UTF_16LE);
     if ((*env)->IsSameObject(env, encoding, UTF_16LE)) {
-        return TSInputEncodingUTF16BE;
+        return TSInputEncodingUTF16LE;
     }
     jobject UTF_16BE = GET_STATIC_FIELD(Object, InputEncoding, InputEncoding_UTF_16BE);
     if ((*env)->IsSameObject(env, encoding, UTF_16BE)) {
-        return TSInputEncodingUTF16LE;
+        return TSInputEncodingUTF16BE;
     }
     UNREACHABLE();
 }
