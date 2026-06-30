@@ -118,6 +118,7 @@ android {
             abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
         }
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles("consumer-rules.pro")
     }
     externalNativeBuild {
         cmake {
