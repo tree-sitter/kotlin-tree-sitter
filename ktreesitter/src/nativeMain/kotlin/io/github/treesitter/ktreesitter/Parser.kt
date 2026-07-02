@@ -118,7 +118,7 @@ actual class Parser actual constructor() {
             self,
             oldTree?.self,
             source,
-            source.length.convert(),
+            source.encodeToByteArray().size.convert(),
             encoding.value
         )
         checkNotNull(tree) { "Parsing failed" }
@@ -155,7 +155,7 @@ actual class Parser actual constructor() {
             read = staticCFunction { payload, index, point, bytes ->
                 val data = payload!!.asStableRef<ParsePayload>().get()
                 val result = data.callback(index, point.useContents { convert() })
-                bytes!!.pointed.value = result?.length?.convert() ?: 0U
+                bytes!!.pointed.value = result?.toString()?.encodeToByteArray()?.size?.convert() ?: 0U
                 result?.toString()?.cstr?.getPointer(data.memScope)
             }
         }

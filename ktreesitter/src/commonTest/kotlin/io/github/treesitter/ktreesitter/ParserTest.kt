@@ -57,6 +57,13 @@ class ParserTest : FunSpec({
         tree.text()?.subSequence(13, 15) shouldBe "\uD83D\uDCA9"
     }
 
+    test("parse(source) with multibyte input") {
+        parser.language = Language(TreeSitterJava.language())
+        val source = "class Foo { String s = \"café 日本語\"; }"
+        val tree = parser.parse(source)
+        tree.rootNode.endByte shouldBe source.encodeToByteArray().size.toUInt()
+    }
+
     test("parse(readCallback)") {
         val source = "class Foo {}"
         val tree = parser.parse { byte, _ ->

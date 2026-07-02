@@ -224,6 +224,12 @@ class NodeTest : FunSpec({
         rootNode.descendant(6U, 9U)?.text() shouldBe "Foo"
     }
 
+    test("text() with multibyte content before the node") {
+        val multibyteSource = "// 日本語日本語日本語\nclass Foo {}"
+        val multibyteTree = Parser(language).parse(multibyteSource)
+        multibyteTree.rootNode.descendant(37U, 40U)?.text() shouldBe "Foo"
+    }
+
     test("sexp()") {
         rootNode.child(0U)!!.sexp() shouldBe
             "(class_declaration name: (identifier) body: (class_body))"
