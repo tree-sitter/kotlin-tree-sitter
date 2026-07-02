@@ -309,8 +309,11 @@ actual class Node internal constructor(
     actual fun walk() = TreeCursor(this)
 
     /** Get the source code of the node, if available. */
-    actual fun text() = tree.text()?.run {
-        subSequence(startByte.toInt(), minOf(endByte.toInt(), length))
+    actual fun text(): CharSequence? = tree.text()?.run {
+        val bytes = toString().encodeToByteArray()
+        val start = startByte.toInt().coerceIn(0, bytes.size)
+        val end = endByte.toInt().coerceIn(start, bytes.size)
+        bytes.decodeToString(start, end)
     }
 
     /** Get the S-expression of the node. */
