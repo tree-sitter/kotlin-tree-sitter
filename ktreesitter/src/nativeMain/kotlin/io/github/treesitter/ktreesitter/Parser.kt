@@ -154,9 +154,9 @@ actual class Parser actual constructor() {
             this.encoding = encoding.value
             read = staticCFunction { payload, index, point, bytes ->
                 val data = payload!!.asStableRef<ParsePayload>().get()
-                val result = data.callback(index, point.useContents { convert() })
-                bytes!!.pointed.value = result?.toString()?.encodeToByteArray()?.size?.convert() ?: 0U
-                result?.toString()?.cstr?.getPointer(data.memScope)
+                val result = data.callback(index, point.useContents { convert() })?.toString()
+                bytes!!.pointed.value = result?.encodeToByteArray()?.size?.convert() ?: 0U
+                result?.cstr?.getPointer(data.memScope)
             }
         }
         var progressRef: StableRef<ParseProgressCallback>? = null
