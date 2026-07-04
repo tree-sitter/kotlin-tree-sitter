@@ -1,7 +1,7 @@
 [versions]
-kotlin-stdlib = "2.2.21"
+kotlin-stdlib = "2.4.0"
 android-gradle = {strictly = "8.13.0"}
-kotest = "6.1.11"
+kotest = "6.2.1"
 dokka = "2.2.0"
 
 [libraries]
@@ -19,7 +19,7 @@ dokka-base = { module = "org.jetbrains.dokka:dokka-base", version.ref = "dokka" 
 kotlin-mpp = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin-stdlib" }
 android-library = { id = "com.android.library", version.ref = "android-gradle" }
 kotest = { id = "io.kotest", version.ref = "kotest" }
-ksp = { id = "com.google.devtools.ksp", version = "2.2.21-2.0.5" }
+ksp = { id = "com.google.devtools.ksp", version = "2.3.9" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 
 [bundles]
