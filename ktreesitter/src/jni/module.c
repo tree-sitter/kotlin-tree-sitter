@@ -179,6 +179,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
     CACHE_CLASS("java/lang/", CharSequence);
     CACHE_METHOD(CharSequence, toString, "toString", "()Ljava/lang/String;");
 
+    CACHE_CLASS("java/lang/", String);
+    CACHE_METHOD(String, getBytes, "getBytes", "(Ljava/lang/String;)[B");
+
     CACHE_CLASS("java/util/", ArrayList);
     CACHE_METHOD(ArrayList, init, "<init>", "(I)V");
     CACHE_METHOD(ArrayList, add, "add", "(Ljava/lang/Object;)Z");
@@ -252,6 +255,7 @@ JNIEXPORT void JNI_OnUnload(JavaVM *vm, void *_reserved) {
     (*env)->DeleteGlobalRef(env, global_class_cache.QueryCapture);
     (*env)->DeleteGlobalRef(env, global_class_cache.QueryMatch);
     (*env)->DeleteGlobalRef(env, global_class_cache.Range);
+    (*env)->DeleteGlobalRef(env, global_class_cache.String);
     (*env)->DeleteGlobalRef(env, global_class_cache.Tree);
     (*env)->DeleteGlobalRef(env, global_class_cache.TreeCursor);
     (*env)->DeleteGlobalRef(env, global_class_cache.Triple);

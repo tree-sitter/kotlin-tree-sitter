@@ -127,6 +127,7 @@ typedef struct {
     jmethodID QueryError$Syntax_init;
     jmethodID QueryMatch_init;
     jmethodID Range_init;
+    jmethodID String_getBytes;
     jmethodID Tree_init;
     jmethodID Triple_init;
 } MethodCache;
@@ -161,6 +162,7 @@ typedef struct {
     jclass QueryError$Syntax;
     jclass QueryMatch;
     jclass Range;
+    jclass String;
     jclass Tree;
     jclass TreeCursor;
     jclass Triple;
