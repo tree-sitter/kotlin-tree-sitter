@@ -237,7 +237,7 @@ class NodeTest : FunSpec({
     }
 
     test("hashCode()") {
-        rootNode.hashCode() shouldBe rootNode.id.toInt()
+        rootNode.hashCode() shouldNotBe rootNode.id.toInt()
     }
 
     test("toString()") {

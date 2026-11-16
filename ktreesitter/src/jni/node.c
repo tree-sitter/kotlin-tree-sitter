@@ -1,5 +1,15 @@
 #include "utils.h"
 
+// Based on https://github.com/Cyan4973/xxHash/blob/master/lib/xxh32_impl.h
+#define KTS_XXH_PRIME2 0x85EBCA77U
+#define KTS_XXH_PRIME3 0xC2B2AE3DU
+#define KTS_XXH_PRIME4 0x27D4EB2FU
+#define KTS_XXH_PRIME5 0x165667B1U
+
+#define kts_rotl32(x, r) (((x) << (r)) | ((x) >> (32 - (r))))
+
+#define kts_ptr32(p) ((uint32_t)((uint64_t)(uintptr_t)(p) ^ ((uint64_t)(uintptr_t)(p) >> 32)))
+
 jshort JNICALL node_symbol(JNIEnv *env, jobject this) {
     TSNode self = unmarshal_node(env, this);
     return (jshort)ts_node_symbol(self);
@@ -362,9 +372,14 @@ jstring JNICALL node_sexp(JNIEnv *env, jobject this) {
 
 jint JNICALL node_hash_code(JNIEnv *env, jobject this) {
     TSNode self = unmarshal_node(env, this);
-    uintptr_t id = (uintptr_t)self.id;
-    uintptr_t tree = (uintptr_t)self.tree;
-    return (jint)(id == tree ? id : id ^ tree);
+    uint32_t acc = KTS_XXH_PRIME5 + 8U;
+    acc += kts_ptr32(self.id) * KTS_XXH_PRIME3;
+    acc = kts_rotl32(acc, 17) * KTS_XXH_PRIME4;
+    acc += kts_ptr32(self.tree) * KTS_XXH_PRIME3;
+    acc = kts_rotl32(acc, 17) * KTS_XXH_PRIME4;
+    acc = (acc ^ (acc >> 15)) * KTS_XXH_PRIME2;
+    acc = (acc ^ (acc >> 13)) * KTS_XXH_PRIME3;
+    return (jint)(acc ^ (acc >> 16));
 }
 
 jboolean JNICALL node_native_equals(JNIEnv *env, jobject this, jobject that) {
