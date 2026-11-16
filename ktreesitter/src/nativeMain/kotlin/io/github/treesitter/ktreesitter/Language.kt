@@ -40,10 +40,6 @@ import kotlinx.cinterop.*
         }
     }
 
-    /** The ABI version number for this language. */
-    @Deprecated("version is deprecated", ReplaceWith("abiVersion"), DeprecationLevel.ERROR)
-    actual val version = abiVersion
-
     /** The number of distinct node types in this language. */
     actual val symbolCount: UInt = ts_language_symbol_count(self)
 

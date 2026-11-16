@@ -65,15 +65,6 @@ actual class Parser actual constructor() {
             field = value
         }
 
-    /**
-     * The maximum duration in microseconds that parsing
-     * should be allowed to take before halting.
-     */
-    @Deprecated("Use the progressCallback in parse()")
-    actual var timeoutMicros: ULong
-        get() = ts_parser_timeout_micros(self)
-        set(value) = ts_parser_set_timeout_micros(self, value)
-
     /** The logger that the parser will use during parsing. */
     @get:Deprecated("The logger can't be called directly.", level = DeprecationLevel.HIDDEN)
     actual var logger: LogFunction? = null

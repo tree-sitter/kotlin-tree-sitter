@@ -53,13 +53,6 @@ expect class Parser() {
      */
     var includedRanges: List<Range>
 
-    /**
-     * The maximum duration in microseconds that parsing
-     * should be allowed to take before halting.
-     */
-    @Deprecated("Use the progressCallback in parse()")
-    var timeoutMicros: ULong
-
     /** The logger that the parser will use during parsing. */
     @get:Deprecated("The logger can't be called directly.", level = DeprecationLevel.HIDDEN)
     var logger: LogFunction?

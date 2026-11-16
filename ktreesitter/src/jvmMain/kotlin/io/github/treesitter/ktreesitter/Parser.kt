@@ -39,17 +39,6 @@ actual class Parser actual constructor() {
         external set
 
     /**
-     * The maximum duration in microseconds that parsing
-     * should be allowed to take before halting.
-     */
-    @get:JvmName("getTimeoutMicros")
-    @set:JvmName("setTimeoutMicros")
-    @Deprecated("Use the progressCallback in parse()")
-    actual var timeoutMicros: ULong
-        external get
-        external set
-
-    /**
      * The logger that the parser will use during parsing.
      *
      * #### Example

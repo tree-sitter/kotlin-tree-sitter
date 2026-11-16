@@ -41,21 +41,6 @@ actual class QueryCursor internal constructor(
     private val cleaner = createCleaner(self, ::ts_query_cursor_delete)
 
     /**
-     * The maximum duration in microseconds that query
-     * execution should be allowed to take before halting.
-     *
-     * Default: `0`
-     *
-     * @since 0.23.0
-     */
-    @Deprecated("Use the progressCallback in Query.invoke()")
-    actual var timeoutMicros: ULong
-        get() = ts_query_cursor_timeout_micros(self)
-        set(value) {
-            ts_query_cursor_set_timeout_micros(self, value)
-        }
-
-    /**
      * The maximum number of in-progress matches.
      *
      * Default: `UInt.MAX_VALUE`
@@ -120,6 +105,46 @@ actual class QueryCursor internal constructor(
             val start = cValue<TSPoint> { from(value.start) }
             val end = cValue<TSPoint> { from(value.endInclusive) }
             require(ts_query_cursor_set_point_range(self, start, end)) {
+                "Invalid point range: [${value.start}, ${value.endInclusive}]"
+            }
+            field = value
+        }
+
+    /**
+     * The range of bytes within which all matches must be fully contained.
+     *
+     * In contrast to [byteRange], this will restrict the query cursor to only return
+     * matches where _all_ nodes are _fully_ contained within the given range.
+     *
+     * Default: `UInt.MIN_VALUE..UInt.MAX_VALUE`
+     *
+     * @throws [IllegalArgumentException] If set to an invalid range.
+     * @since 0.26.0
+     */
+    actual var containingByteRange: UIntRange = UInt.MIN_VALUE..UInt.MAX_VALUE
+        set(value) {
+            require(ts_query_cursor_set_containing_byte_range(self, value.first, value.last)) {
+                "Invalid byte range: [${value.first}, ${value.last}]"
+            }
+            field = value
+        }
+
+    /**
+     * The range of points within which all matches must be fully contained.
+     *
+     * In contrast to [pointRange], this will restrict the query cursor to only return
+     * matches where _all_ nodes are _fully_ contained within the given range.
+     *
+     * Default: `Point.MIN..Point.MAX`
+     *
+     * @throws [IllegalArgumentException] If set to an invalid range.
+     * @since 0.26.0
+     */
+    actual var containingPointRange: ClosedRange<Point> = Point.MIN..Point.MAX
+        set(value) {
+            val start = cValue<TSPoint> { from(value.start) }
+            val end = cValue<TSPoint> { from(value.endInclusive) }
+            require(ts_query_cursor_set_containing_point_range(self, start, end)) {
                 "Invalid point range: [${value.start}, ${value.endInclusive}]"
             }
             field = value

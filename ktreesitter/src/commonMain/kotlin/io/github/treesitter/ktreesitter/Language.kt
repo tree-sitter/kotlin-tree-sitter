@@ -17,10 +17,6 @@ expect class Language @Throws(IllegalArgumentException::class) constructor(langu
      */
     val abiVersion: UInt
 
-    /** The ABI version number for this language. */
-    @Deprecated("version is deprecated", ReplaceWith("abiVersion"), DeprecationLevel.ERROR)
-    val version: UInt
-
     /** The number of distinct node types in this language. */
     val symbolCount: UInt
 

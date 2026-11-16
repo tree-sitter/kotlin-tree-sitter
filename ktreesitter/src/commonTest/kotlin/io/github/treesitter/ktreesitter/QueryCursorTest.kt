@@ -21,14 +21,6 @@ class QueryCursorTest :
         val query = Query(language, source)
         val tree = parser.parse("class Foo {}")
 
-        @Suppress("DEPRECATION")
-        test("timeoutMicros") {
-            val cursor = query(tree.rootNode)
-            cursor.timeoutMicros shouldBe 0UL
-            cursor.timeoutMicros = 10UL
-            cursor.timeoutMicros shouldBe 10UL
-        }
-
         test("matchLimit") {
             val cursor = query(tree.rootNode)
             cursor.matchLimit shouldBe UInt.MAX_VALUE
@@ -52,6 +44,18 @@ class QueryCursorTest :
             val cursor = query(tree.rootNode)
             cursor.pointRange = Point(0U, 10U)..Point.MAX
             cursor.pointRange.start shouldBe Point(0U, 10U)
+        }
+
+        test("containingByteRange") {
+            val cursor = query(tree.rootNode)
+            cursor.containingByteRange = 0U..10U
+            cursor.containingByteRange.last shouldBe 10U
+        }
+
+        test("containingPointRange") {
+            val cursor = query(tree.rootNode)
+            cursor.containingPointRange = Point(0U, 10U)..Point.MAX
+            cursor.containingPointRange.start shouldBe Point(0U, 10U)
         }
 
         test("didExceedMatchLimit") {
