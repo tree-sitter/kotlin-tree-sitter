@@ -77,7 +77,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
             var j = 0
             while (j < tokens.size) {
                 var nargs = 0
-                while (tokens[nargs].type != TSQueryPredicateStepTypeDone) ++nargs
+                while (tokens[j + nargs].type != TSQueryPredicateStepTypeDone) ++nargs
                 val t0 = tokens[j]
                 if (t0.type == TSQueryPredicateStepTypeCapture) {
                     throw QueryError.Predicate(row, "@${captureNames[t0.value]}")
@@ -176,7 +176,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
                             )
                         }
                         val values = (2..<nargs).map {
-                            val t = tokens[it]
+                            val t = tokens[j + it]
                             if (t.type != TSQueryPredicateStepTypeString) {
                                 val value = captureNames[t.value]
                                 throw QueryError.Predicate(
@@ -262,7 +262,7 @@ actual class Query @Throws(QueryError::class) actual constructor(
 
                     else -> {
                         val args = (1..<nargs).map {
-                            val t = tokens[it]
+                            val t = tokens[j + it]
                             if (t.type == TSQueryPredicateStepTypeString) {
                                 QueryPredicateArg.Literal(stringValues[t.value])
                             } else {

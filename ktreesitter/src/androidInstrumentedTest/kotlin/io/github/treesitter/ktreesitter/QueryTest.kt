@@ -57,6 +57,9 @@ class QueryTest :
             ) {
                 Query(language, "\n((identifier) @foo\n (#any-of?))")
             }
+            shouldNotThrowAny {
+                Query(language, "((identifier) @x\n (#eq? @x \"foo\")\n (#eq? @x \"bar\"))")
+            }
         }
 
         test("patternCount") {
@@ -165,19 +168,6 @@ class QueryTest :
             query.isPatternGuaranteedAtStep(27U) shouldBe false
             shouldThrow<IndexOutOfBoundsException> {
                 query.isPatternGuaranteedAtStep(99U)
-            }
-        }
-
-        test("multiple predicates on same pattern") {
-            shouldNotThrowAny {
-                Query(
-                    language,
-                    """
-                ((identifier) @x
-                  (#eq? @x "foo")
-                  (#eq? @x "bar"))
-                    """.trimIndent()
-                )
             }
         }
     })
