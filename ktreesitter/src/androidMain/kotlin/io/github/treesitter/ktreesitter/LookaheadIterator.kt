@@ -1,5 +1,7 @@
 package io.github.treesitter.ktreesitter
 
+import android.os.Build.VERSION.SDK_INT
+import android.os.Build.VERSION_CODES.TIRAMISU
 import dalvik.annotation.optimization.CriticalNative
 import dalvik.annotation.optimization.FastNative
 
@@ -78,7 +80,9 @@ actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal
         }
     }
 
-    override fun close() = delete(self)
+    override fun close() {
+        if (SDK_INT < TIRAMISU) delete(self)
+    }
 
     actual override fun computeNext() = if (nativeNext()) {
         setNext(Symbol(currentSymbol, currentSymbolName))

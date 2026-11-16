@@ -1,5 +1,7 @@
 package io.github.treesitter.ktreesitter
 
+import android.os.Build.VERSION.SDK_INT
+import android.os.Build.VERSION_CODES.TIRAMISU
 import dalvik.annotation.optimization.CriticalNative
 import dalvik.annotation.optimization.FastNative
 
@@ -199,7 +201,9 @@ actual class QueryCursor internal constructor(
 
     override fun toString() = "QueryCursor(query=$query, node=$node)"
 
-    override fun close() = delete(self)
+    override fun close() {
+        if (SDK_INT < TIRAMISU) delete(self)
+    }
 
     @FastNative
     private external fun nativeSetByteRange(start: Int, end: Int): Boolean
