@@ -137,7 +137,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.konan
-          key: konan-${{runner.os}}-${{runner.arch}}-2.2.21
+          key: konan-${{runner.os}}-${{runner.arch}}-2.3.21
       - name: Set up cross compilation
         if: matrix.platform == 'Linux'
         run: |-
@@ -156,7 +156,7 @@ jobs:
           pattern: ktreesitter-lib-*
           merge-multiple: true
       - name: Build packages
-        run: ./gradlew --no-daemon -P "cmake.version=4.1.2" ${{matrix.targets}}
+        run: ./gradlew --no-daemon -P "cmake.version=4.4.5" ${{matrix.targets}}
         env:
           SIGNING_KEY: ${{secrets.SIGNING_KEY}}
           SIGNING_PASSWORD: ${{secrets.SIGNING_PASSWORD}}
@@ -235,7 +235,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.konan
-          key: konan-${{runner.os}}-${{runner.arch}}-2.2.21
+          key: konan-${{runner.os}}-${{runner.arch}}-2.3.21
       - name: Publish Gradle plugin
         run: ./gradlew --no-daemon :ktreesitter-plugin:publishPlugins
         env:

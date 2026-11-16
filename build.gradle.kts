@@ -18,6 +18,6 @@ subprojects {
 }
 
 tasks.wrapper {
-    gradleVersion = "8.14.3"
+    gradleVersion = "8.14.7"
     distributionType = Wrapper.DistributionType.BIN
 }
