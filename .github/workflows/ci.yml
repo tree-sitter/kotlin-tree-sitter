@@ -14,7 +14,7 @@ on:
       - .github/workflows/docs.yml
   pull_request:
     paths:
-      - "/*.kt"
+      - "**/*.kt"
       - "**/*.kts"
       - "**/jni/*"
       - gradle/**
