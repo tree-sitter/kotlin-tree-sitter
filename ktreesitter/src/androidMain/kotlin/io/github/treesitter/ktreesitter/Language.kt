@@ -32,12 +32,6 @@ actual class Language @Throws(IllegalArgumentException::class) actual constructo
     actual val abiVersion: UInt
         @FastNative external get
 
-    /** The ABI version number for this language. */
-    @Deprecated("version is deprecated", ReplaceWith("abiVersion"), DeprecationLevel.ERROR)
-    @get:JvmName("getVersion")
-    actual val version: UInt
-        @FastNative external get
-
     /** The number of distinct node types in this language. */
     @get:JvmName("getSymbolCount")
     actual val symbolCount: UInt

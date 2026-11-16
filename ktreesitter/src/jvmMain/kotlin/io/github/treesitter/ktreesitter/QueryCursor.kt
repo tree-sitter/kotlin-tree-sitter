@@ -19,22 +19,6 @@ actual class QueryCursor internal constructor(
     }
 
     /**
-     * The maximum duration in microseconds that query
-     * execution should be allowed to take before halting.
-     *
-     * Default: `0`
-     *
-     * @since 0.23.0
-     */
-    @get:JvmName("getTimeoutMicros")
-    @set:JvmName("setTimeoutMicros")
-    @Deprecated("Use the progressCallback in Query.invoke()")
-    actual var timeoutMicros: ULong
-        external get
-
-        external set
-
-    /**
      * The maximum number of in-progress matches.
      *
      * Default: `UInt.MAX_VALUE`
@@ -74,6 +58,9 @@ actual class QueryCursor internal constructor(
      *
      * @throws [IllegalArgumentException] If set to an invalid range.
      */
+    @get:JvmName("getByteRange")
+    @set:JvmName("setByteRange")
+    @set:Throws(IllegalArgumentException::class)
     actual var byteRange: UIntRange = UInt.MIN_VALUE..UInt.MAX_VALUE
         set(value) {
             require(nativeSetByteRange(value.first.toInt(), value.last.toInt())) {
@@ -91,10 +78,60 @@ actual class QueryCursor internal constructor(
      * as long as at least part of the match overlaps with the range.
      *
      * Default: `Point.MIN..Point.MAX`
+     *
+     * @throws [IllegalArgumentException] If set to an invalid range.
+     * @since 0.26.0
      */
+    @get:JvmName("getPointRange")
+    @set:JvmName("setPointRange")
+    @set:Throws(IllegalArgumentException::class)
     actual var pointRange: ClosedRange<Point> = Point.MIN..Point.MAX
         set(value) {
             require(nativeSetPointRange(value.start, value.endInclusive)) {
+                "Invalid point range: [${value.start}, ${value.endInclusive}]"
+            }
+            field = value
+        }
+
+    /**
+     * The range of bytes within which all matches must be fully contained.
+     *
+     * In contrast to [byteRange], this will restrict the query cursor to only return
+     * matches where _all_ nodes are _fully_ contained within the given range.
+     *
+     * Default: `UInt.MIN_VALUE..UInt.MAX_VALUE`
+     *
+     * @throws [IllegalArgumentException] If set to an invalid range.
+     * @since 0.26.0
+     */
+    @get:JvmName("getContainingByteRange")
+    @set:JvmName("setContainingByteRange")
+    @set:Throws(IllegalArgumentException::class)
+    actual var containingByteRange: UIntRange = UInt.MIN_VALUE..UInt.MAX_VALUE
+        set(value) {
+            require(nativeSetContainingByteRange(value.first.toInt(), value.last.toInt())) {
+                "Invalid byte range: [${value.first}, ${value.last}]"
+            }
+            field = value
+        }
+
+    /**
+     * The range of points within which all matches must be fully contained.
+     *
+     * In contrast to [pointRange], this will restrict the query cursor to only return
+     * matches where _all_ nodes are _fully_ contained within the given range.
+     *
+     * Default: `Point.MIN..Point.MAX`
+     *
+     * @throws [IllegalArgumentException] If set to an invalid range.
+     * @since 0.26.0
+     */
+    @get:JvmName("getContainingPointRange")
+    @set:JvmName("setContainingPointRange")
+    @set:Throws(IllegalArgumentException::class)
+    actual var containingPointRange: ClosedRange<Point> = Point.MIN..Point.MAX
+        set(value) {
+            require(nativeSetContainingPointRange(value.start, value.endInclusive)) {
                 "Invalid point range: [${value.start}, ${value.endInclusive}]"
             }
             field = value
@@ -160,6 +197,10 @@ actual class QueryCursor internal constructor(
     private external fun nativeSetByteRange(start: Int, end: Int): Boolean
 
     private external fun nativeSetPointRange(start: Point, end: Point): Boolean
+
+    private external fun nativeSetContainingByteRange(start: Int, end: Int): Boolean
+
+    private external fun nativeSetContainingPointRange(start: Point, end: Point): Boolean
 
     private external fun nextMatch(captureNames: List<String>, tree: Tree): QueryMatch?
 

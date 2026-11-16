@@ -17,17 +17,6 @@ void query_cursor_delete CRITICAL_ARGS(jlong cursor) {
     ts_query_cursor_delete((TSQueryCursor *)cursor);
 }
 
-jlong query_cursor_get_timeout_micros(JNIEnv *env, jobject this) {
-    TSQueryCursor *cursor = GET_POINTER(TSQueryCursor, this, QueryCursor_self);
-    return (jlong)ts_query_cursor_timeout_micros(cursor);
-}
-
-void query_cursor_set_timeout_micros(JNIEnv *env, jobject this, jlong value) {
-    TSQueryCursor *cursor = GET_POINTER(TSQueryCursor, this, QueryCursor_self);
-    ts_query_cursor_set_timeout_micros(cursor, (uint64_t)value);
-    (*env)->SetLongField(env, this, global_field_cache.QueryCursor_timeoutMicros, value);
-}
-
 jint query_cursor_get_match_limit(JNIEnv *env, jobject this) {
     TSQueryCursor *cursor = GET_POINTER(TSQueryCursor, this, QueryCursor_self);
     return (jint)ts_query_cursor_match_limit(cursor);
@@ -55,11 +44,25 @@ jboolean query_cursor_native_set_byte_range(JNIEnv *env, jobject this, jint star
     return (jboolean)ts_query_cursor_set_byte_range(cursor, (uint32_t)start, (uint32_t)end);
 }
 
+jboolean query_cursor_native_set_containing_byte_range(JNIEnv *env, jobject this, jint start,
+                                                       jint end) {
+    TSQueryCursor *cursor = GET_POINTER(TSQueryCursor, this, QueryCursor_self);
+    return (jboolean)ts_query_cursor_set_containing_byte_range(cursor, (uint32_t)start,
+                                                               (uint32_t)end);
+}
+
 jboolean query_cursor_native_set_point_range(JNIEnv *env, jobject this, jobject start,
                                              jobject end) {
     TSQueryCursor *cursor = GET_POINTER(TSQueryCursor, this, QueryCursor_self);
     TSPoint start_point = unmarshal_point(env, start), end_point = unmarshal_point(env, end);
     return (jboolean)ts_query_cursor_set_point_range(cursor, start_point, end_point);
+}
+
+jboolean query_cursor_native_set_containing_point_range(JNIEnv *env, jobject this, jobject start,
+                                                        jobject end) {
+    TSQueryCursor *cursor = GET_POINTER(TSQueryCursor, this, QueryCursor_self);
+    TSPoint start_point = unmarshal_point(env, start), end_point = unmarshal_point(env, end);
+    return (jboolean)ts_query_cursor_set_containing_point_range(cursor, start_point, end_point);
 }
 
 void query_cursor_exec(JNIEnv *env, jobject this, jlong query, jobject node,
@@ -135,15 +138,17 @@ jobject query_cursor_next_match(JNIEnv *env, jobject this, jobject capture_names
 const JNINativeMethod QueryCursor_methods[] = {
     {"init", "()J", (void *)&query_cursor_init},
     {"delete", "(J)V", (void *)&query_cursor_delete},
-    {"getTimeoutMicros", "()J", (void *)&query_cursor_get_timeout_micros},
-    {"setTimeoutMicros", "(J)V", (void *)&query_cursor_set_timeout_micros},
     {"getMatchLimit", "()I", (void *)&query_cursor_get_match_limit},
     {"setMatchLimit", "(I)V", (void *)&query_cursor_set_match_limit},
     {"setMaxStartDepth", "(I)V", (void *)&query_cursor_set_max_start_depth},
     {"didExceedMatchLimit", "()Z", (void *)&query_cursor_did_exceed_match_limit},
     {"nativeSetByteRange", "(II)Z", (void *)&query_cursor_native_set_byte_range},
+    {"nativeSetContainingByteRange", "(II)Z",
+     (void *)&query_cursor_native_set_containing_byte_range},
     {"nativeSetPointRange", "(L" PACKAGE "Point;L" PACKAGE "Point;)Z",
      (void *)&query_cursor_native_set_point_range},
+    {"nativeSetContainingPointRange", "(L" PACKAGE "Point;L" PACKAGE "Point;)Z",
+     (void *)&query_cursor_native_set_containing_point_range},
     {"nextMatch", "(Ljava/util/List;L" PACKAGE "Tree;)L" PACKAGE "QueryMatch;",
      (void *)&query_cursor_next_match},
     {"nextCapture", "(Ljava/util/List;L" PACKAGE "Tree;)Lkotlin/Pair;",

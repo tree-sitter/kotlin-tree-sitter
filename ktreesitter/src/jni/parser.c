@@ -111,11 +111,6 @@ void JNICALL parser_delete(JNIEnv *env, jclass _class, jlong self) {
     ts_parser_delete((TSParser *)self);
 }
 
-jlong JNICALL parser_get_timeout_micros(JNIEnv *env, jobject this) {
-    TSParser *self = GET_POINTER(TSParser, this, Parser_self);
-    return ts_parser_timeout_micros(self);
-}
-
 void JNICALL parser_set_language(JNIEnv *env, jobject this, jobject value) {
     TSParser *self = GET_POINTER(TSParser, this, Parser_self);
     TSLanguage *language = GET_POINTER(TSLanguage, value, Language_self);
@@ -144,12 +139,6 @@ void JNICALL parser_set_included_ranges(JNIEnv *env, jobject this, jobject value
         THROW(IllegalArgumentException, error);
     }
     free(ts_ranges);
-}
-
-void JNICALL parser_set_timeout_micros(JNIEnv *env, jobject this, jlong value) {
-    TSParser *self = GET_POINTER(TSParser, this, Parser_self);
-    ts_parser_set_timeout_micros(self, (uint64_t)value);
-    (*env)->SetLongField(env, this, global_field_cache.Parser_timeoutMicros, value);
 }
 
 void JNICALL parser_set_logger(JNIEnv *env, jobject this, jobject value) {
@@ -250,8 +239,6 @@ const JNINativeMethod Parser_methods[] = {
     {"delete", "(J)V", (void *)&parser_delete},
     {"setLanguage", "(L" PACKAGE "Language;)V", (void *)&parser_set_language},
     {"setIncludedRanges", "(Ljava/util/List;)V", (void *)&parser_set_included_ranges},
-    {"getTimeoutMicros", "()J", (void *)&parser_get_timeout_micros},
-    {"setTimeoutMicros", "(J)V", (void *)&parser_set_timeout_micros},
     {"setLogger", "(Lkotlin/jvm/functions/Function2;)V", (void *)&parser_set_logger},
     {"parse", "(Ljava/lang/String;L" PACKAGE "InputEncoding;L" PACKAGE "Tree;)L" PACKAGE "Tree;",
      (void *)&parser_parse__string},

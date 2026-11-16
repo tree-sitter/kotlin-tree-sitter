@@ -7,17 +7,6 @@ package io.github.treesitter.ktreesitter
  */
 expect class QueryCursor {
     /**
-     * The maximum duration in microseconds that query
-     * execution should be allowed to take before halting.
-     *
-     * Default: `0`
-     *
-     * @since 0.23.0
-     */
-    @Deprecated("Use the progressCallback in Query.invoke()")
-    var timeoutMicros: ULong
-
-    /**
      * The maximum number of in-progress matches.
      *
      * Default: `UInt.MAX_VALUE`
@@ -63,6 +52,32 @@ expect class QueryCursor {
      * @throws [IllegalArgumentException] If set to an invalid range.
      */
     var pointRange: ClosedRange<Point>
+
+    /**
+     * The range of bytes within which all matches must be fully contained.
+     *
+     * In contrast to [byteRange], this will restrict the query cursor to only return
+     * matches where _all_ nodes are _fully_ contained within the given range.
+     *
+     * Default: `UInt.MIN_VALUE..UInt.MAX_VALUE`
+     *
+     * @throws [IllegalArgumentException] If set to an invalid range.
+     * @since 0.26.0
+     */
+    var containingByteRange: UIntRange
+
+    /**
+     * The range of points within which all matches must be fully contained.
+     *
+     * In contrast to [pointRange], this will restrict the query cursor to only return
+     * matches where _all_ nodes are _fully_ contained within the given range.
+     *
+     * Default: `Point.MIN..Point.MAX`
+     *
+     * @throws [IllegalArgumentException] If set to an invalid range.
+     * @since 0.26.0
+     */
+    var containingPointRange: ClosedRange<Point>
 
     /**
      * Check if the cursor exceeded its maximum number of

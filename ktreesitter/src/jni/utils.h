@@ -81,13 +81,11 @@ typedef struct {
     jfieldID Parser_language;
     jfieldID Parser_logger;
     jfieldID Parser_self;
-    jfieldID Parser_timeoutMicros;
     jfieldID Point_column;
     jfieldID Point_row;
     jfieldID QueryCursor_matchLimit;
     jfieldID QueryCursor_maxStartDepth;
     jfieldID QueryCursor_self;
-    jfieldID QueryCursor_timeoutMicros;
     jfieldID Query_language;
     jfieldID Query_self;
     jfieldID Query_source;
