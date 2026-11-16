@@ -127,8 +127,10 @@ void JNICALL parser_set_included_ranges(JNIEnv *env, jobject this, jobject value
     TSRange *ts_ranges = (TSRange *)calloc(size, sizeof(TSRange));
     for (uint32_t i = 0; i < size; ++i) {
         jobject range = CALL_METHOD(Object, value, List_get, (jint)i);
-        if ((*env)->ExceptionCheck(env))
+        if ((*env)->ExceptionCheck(env)) {
+            free(ts_ranges);
             return;
+        }
         *(ts_ranges + i) = unmarshal_range(env, range);
         (*env)->DeleteLocalRef(env, range);
     }
