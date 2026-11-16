@@ -69,14 +69,14 @@ void query_cursor_exec(JNIEnv *env, jobject this, jlong query, jobject node,
                        jobject progress_callback) {
     TSQueryCursor *cursor = GET_POINTER(TSQueryCursor, this, QueryCursor_self);
     TSNode ts_node = unmarshal_node(env, node);
+    ProgressPayload progress_payload = {.env = env, .callback = progress_callback};
+    TSQueryCursorOptions options = {
+        .payload = (void *)&progress_payload,
+        .progress_callback = query_progress_callback,
+    };
     if (progress_callback == NULL) {
         ts_query_cursor_exec(cursor, (TSQuery *)query, ts_node);
     } else {
-        ProgressPayload progress_payload = {.env = env, .callback = progress_callback};
-        TSQueryCursorOptions options = {
-            .payload = (void *)&progress_payload,
-            .progress_callback = query_progress_callback,
-        };
         ts_query_cursor_exec_with_options(cursor, (TSQuery *)query, ts_node, &options);
     }
 }

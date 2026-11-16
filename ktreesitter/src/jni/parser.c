@@ -205,17 +205,14 @@ jobject JNICALL parser_parse__function(JNIEnv *env, jobject this, jobject encodi
         .read = parse_read_callback,
         .encoding = input_encoding,
     };
-    TSTree *ts_tree;
-    if (progress_callback == NULL) {
-        ts_tree = ts_parser_parse(self, old_ts_tree, input);
-    } else {
-        ProgressPayload progress_payload = {.env = env, .callback = progress_callback};
-        TSParseOptions options = {
-            .payload = (void *)&progress_payload,
-            .progress_callback = parse_progress_callback,
-        };
-        ts_tree = ts_parser_parse_with_options(self, old_ts_tree, input, options);
-    }
+    ProgressPayload progress_payload = {.env = env, .callback = progress_callback};
+    TSParseOptions options = {
+        .payload = (void *)&progress_payload,
+        .progress_callback = parse_progress_callback,
+    };
+    TSTree *ts_tree = progress_callback == NULL
+                          ? ts_parser_parse(self, old_ts_tree, input)
+                          : ts_parser_parse_with_options(self, old_ts_tree, input, options);
 
     if ((*env)->ExceptionCheck(env)) {
         (*env)->Throw(env, (*env)->ExceptionOccurred(env));
