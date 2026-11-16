@@ -1,5 +1,7 @@
 package io.github.treesitter.ktreesitter
 
+import android.os.Build.VERSION.SDK_INT
+import android.os.Build.VERSION_CODES.TIRAMISU
 import dalvik.annotation.optimization.CriticalNative
 import dalvik.annotation.optimization.FastNative
 
@@ -108,7 +110,9 @@ actual class Parser actual constructor() : AutoCloseable {
 
     override fun toString() = "Parser(language=$language)"
 
-    override fun close() = delete(self)
+    override fun close() {
+        if (SDK_INT < TIRAMISU) delete(self)
+    }
 
     /** The type of a log message. */
     @Suppress("unused")

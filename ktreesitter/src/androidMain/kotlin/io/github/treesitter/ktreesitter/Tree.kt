@@ -1,5 +1,7 @@
 package io.github.treesitter.ktreesitter
 
+import android.os.Build.VERSION.SDK_INT
+import android.os.Build.VERSION_CODES.TIRAMISU
 import dalvik.annotation.optimization.CriticalNative
 import dalvik.annotation.optimization.FastNative
 
@@ -68,7 +70,9 @@ actual class Tree internal constructor(
 
     override fun toString() = "Tree(language=$language, source=$source)"
 
-    override fun close() = delete(self)
+    override fun close() {
+        if (SDK_INT < TIRAMISU) delete(self)
+    }
 
     private external fun nativeIncludedRanges(): List<Range>
 

@@ -1,5 +1,7 @@
 package io.github.treesitter.ktreesitter
 
+import android.os.Build.VERSION.SDK_INT
+import android.os.Build.VERSION_CODES.TIRAMISU
 import dalvik.annotation.optimization.CriticalNative
 import dalvik.annotation.optimization.FastNative
 
@@ -165,7 +167,9 @@ actual class TreeCursor private constructor(
 
     override fun toString() = "TreeCursor(tree=$tree)"
 
-    override fun close() = delete(self)
+    override fun close() {
+        if (SDK_INT < TIRAMISU) delete(self)
+    }
 
     @FastNative
     @JvmName("nativeGotoFirstChildForByte")
