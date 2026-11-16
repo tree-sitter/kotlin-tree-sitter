@@ -62,7 +62,10 @@ static const char *parse_read_callback(void *payload, uint32_t byte_index, TSPoi
     const char *last_chars = read_payload->last_result.chars;
     if (last_string) {
         (*env)->ReleaseStringUTFChars(env, last_string, last_chars);
+        read_payload->last_result.string = NULL;
+        read_payload->last_result.chars = NULL;
     }
+    *bytes_read = 0;
 
     jobject point = marshal_point(env, position);
     jobject byte = (*env)->AllocObject(env, global_class_cache.UInt);
