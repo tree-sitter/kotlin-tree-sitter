@@ -112,6 +112,10 @@ android {
     }
 }
 
+tasks.getByName("compileKotlinJvm").mustRunAfter(generateTask)
+
+tasks.getByName("jvmProcessResources").mustRunAfter(generateTask)
+
 // TODO: replace with cmake
 @Suppress("DEPRECATION")
 tasks.withType<CInteropProcess>().configureEach {
