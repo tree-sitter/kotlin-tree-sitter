@@ -101,7 +101,6 @@ jobs:
           - os: macos-latest
             platform: macOS/iOS
             targets: >-
-              :ktreesitter:macosX64Test
               :ktreesitter:macosArm64Test
               :ktreesitter:iosSimulatorArm64Test
     steps:

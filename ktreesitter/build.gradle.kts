@@ -57,7 +57,6 @@ kotlin {
     linuxArm64 { treesitter() }
     mingwX64 { treesitter() }
     macosArm64 { treesitter() }
-    macosX64 { treesitter() }
     iosArm64 { treesitter() }
     iosSimulatorArm64 { treesitter() }
 
