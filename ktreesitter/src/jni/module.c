@@ -93,8 +93,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
 
     REGISTER_CLASS(Tree);
     CACHE_FIELD(Tree, self, "J");
-    CACHE_FIELD(Tree, source, "Ljava/lang/String;");
-    CACHE_METHOD(Tree, init, "<init>", "(JLjava/lang/String;L" PACKAGE "Language;)V");
+    CACHE_FIELD(Tree, source, "[B");
 
     REGISTER_CLASS(TreeCursor);
     CACHE_FIELD(TreeCursor, self, "J");
@@ -174,9 +173,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
     CACHE_FIELD(Boolean, value, "Z");
     CACHE_METHOD(Boolean, init, "<init>", "(Z)V");
 
-    CACHE_CLASS("java/lang/", CharSequence);
-    CACHE_METHOD(CharSequence, toString, "toString", "()Ljava/lang/String;");
-
     CACHE_CLASS("java/util/", ArrayList);
     CACHE_METHOD(ArrayList, init, "<init>", "(I)V");
     CACHE_METHOD(ArrayList, add, "add", "(Ljava/lang/Object;)Z");
@@ -208,6 +204,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *_reserved) {
     CACHE_CLASS("java/lang/", IllegalArgumentException);
     CACHE_CLASS("java/lang/", IllegalStateException);
     CACHE_CLASS("java/lang/", IndexOutOfBoundsException);
+    CACHE_CLASS("java/lang/", OutOfMemoryError);
 
 #ifdef __ANDROID__
     ts_set_allocator(malloc, calloc, realloc, free);
@@ -223,7 +220,6 @@ JNIEXPORT void JNI_OnUnload(JavaVM *vm, void *_reserved) {
 
     (*env)->DeleteGlobalRef(env, global_class_cache.ArrayList);
     (*env)->DeleteGlobalRef(env, global_class_cache.Boolean);
-    (*env)->DeleteGlobalRef(env, global_class_cache.CharSequence);
     (*env)->DeleteGlobalRef(env, global_class_cache.Function1);
     (*env)->DeleteGlobalRef(env, global_class_cache.Function2);
     (*env)->DeleteGlobalRef(env, global_class_cache.IllegalArgumentException);
@@ -248,6 +244,7 @@ JNIEXPORT void JNI_OnUnload(JavaVM *vm, void *_reserved) {
     (*env)->DeleteGlobalRef(env, global_class_cache.QueryError$Syntax);
     (*env)->DeleteGlobalRef(env, global_class_cache.QueryCapture);
     (*env)->DeleteGlobalRef(env, global_class_cache.QueryMatch);
+    (*env)->DeleteGlobalRef(env, global_class_cache.OutOfMemoryError);
     (*env)->DeleteGlobalRef(env, global_class_cache.Range);
     (*env)->DeleteGlobalRef(env, global_class_cache.Tree);
     (*env)->DeleteGlobalRef(env, global_class_cache.TreeCursor);

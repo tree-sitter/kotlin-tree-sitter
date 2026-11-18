@@ -8,6 +8,7 @@ strictEnums = \
     TSLogType \
     TSQuantifier \
     TSQueryError
+noStringConversion = ts_parser_parse_string_encoding
 nonStrictEnums = \
     TSQueryPredicateStepType \
     TSSymbolType

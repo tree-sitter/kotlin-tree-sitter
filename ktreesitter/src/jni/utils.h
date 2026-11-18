@@ -106,7 +106,6 @@ typedef struct {
     jmethodID ArrayList_add;
     jmethodID ArrayList_init;
     jmethodID Boolean_init;
-    jmethodID CharSequence_toString;
     jmethodID Function1_invoke;
     jmethodID Function2_invoke;
     jmethodID Language_init;
@@ -125,14 +124,12 @@ typedef struct {
     jmethodID QueryError$Syntax_init;
     jmethodID QueryMatch_init;
     jmethodID Range_init;
-    jmethodID Tree_init;
     jmethodID Triple_init;
 } MethodCache;
 
 typedef struct {
     jclass ArrayList;
     jclass Boolean;
-    jclass CharSequence;
     jclass Function1;
     jclass Function2;
     jclass IllegalArgumentException;
@@ -145,6 +142,7 @@ typedef struct {
     jclass List;
     jclass LookaheadIterator;
     jclass Node;
+    jclass OutOfMemoryError;
     jclass Pair;
     jclass Parser$LogType;
     jclass Parser;

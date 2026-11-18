@@ -322,9 +322,7 @@ actual class Node internal constructor(
     actual fun walk() = TreeCursor(this)
 
     /** Get the source code of the node, if available. */
-    actual fun text() = tree.text()?.run {
-        subSequence(startByte.toInt(), minOf(endByte.toInt(), length))
-    }
+    actual fun text(): CharSequence? = tree.slice(startByte, endByte)
 
     /** Get the S-expression of the node. */
     actual external fun sexp(): String

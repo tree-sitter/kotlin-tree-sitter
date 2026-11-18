@@ -13,9 +13,10 @@ import dalvik.annotation.optimization.FastNative
  */
 actual class Tree internal constructor(
     private val self: Long,
-    private var source: String?,
+    private var source: ByteArray?,
     /** The language that was used to parse the syntax tree. */
-    actual val language: Language
+    actual val language: Language,
+    private val encoding: InputEncoding = InputEncoding.UTF_8
 ) : AutoCloseable {
     init {
         RefCleaner(this, CleanAction(self))
@@ -49,13 +50,13 @@ actual class Tree internal constructor(
      * You need to copy a syntax tree in order to use it on multiple
      * threads or coroutines, as syntax trees are not thread safe.
      */
-    actual fun copy() = Tree(copy(self), source, language)
+    actual fun copy() = Tree(copy(self), source, language, encoding)
 
     /** Create a new tree cursor starting from the node of the tree. */
     actual fun walk() = TreeCursor(rootNode)
 
     /** Get the source code of the syntax tree, if available. */
-    actual fun text(): CharSequence? = source
+    actual fun text(): CharSequence? = source?.let { String(it, encoding.charset) }
 
     /**
      * Compare an old edited syntax tree to a new
@@ -68,10 +69,18 @@ actual class Tree internal constructor(
      */
     actual external fun changedRanges(newTree: Tree): List<Range>
 
-    override fun toString() = "Tree(language=$language, source=$source)"
+    override fun toString() = "Tree(language=$language, source=${text()})"
 
     override fun close() {
         if (SDK_INT < TIRAMISU) delete(self)
+    }
+
+    internal fun hasText() = source != null
+
+    internal fun slice(startByte: UInt, endByte: UInt) = source?.let {
+        val start = startByte.toInt().coerceIn(0, it.size)
+        val end = endByte.toInt().coerceIn(start, it.size)
+        String(it, start, end - start, encoding.charset)
     }
 
     private external fun nativeIncludedRanges(): List<Range>

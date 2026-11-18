@@ -76,7 +76,14 @@ actual class Parser actual constructor() : AutoCloseable {
      *  If the parser does not have a [language] assigned or if parsing was halted.
      */
     @Throws(IllegalStateException::class)
-    actual external fun parse(source: String, encoding: InputEncoding, oldTree: Tree?): Tree
+    actual fun parse(source: String, encoding: InputEncoding, oldTree: Tree?): Tree {
+        val language = checkNotNull(language) {
+            "The parser has no language assigned"
+        }
+        val bytes = source.toByteArray(encoding.charset)
+        val tree = nativeParse(bytes, encoding, oldTree)
+        return Tree(tree, bytes, language, encoding)
+    }
 
     /**
      * Parse source code from a callback and create a syntax tree.
@@ -91,12 +98,21 @@ actual class Parser actual constructor() : AutoCloseable {
      *  If the parser does not have a [language] assigned or if parsing was halted.
      */
     @Throws(IllegalStateException::class)
-    actual external fun parse(
+    actual fun parse(
         encoding: InputEncoding,
         oldTree: Tree?,
         progressCallback: ParseProgressCallback?,
         readCallback: ParseReadCallback
-    ): Tree
+    ): Tree {
+        val language = checkNotNull(language) {
+            "The parser has no language assigned"
+        }
+        val charset = encoding.charset
+        val tree = nativeParse(encoding, oldTree, progressCallback) { byte, point ->
+            readCallback(byte, point)?.toString()?.toByteArray(charset)
+        }
+        return Tree(tree, null, language)
+    }
 
     /**
      * Instruct the parser to start the next [parse] from the beginning.
@@ -113,6 +129,19 @@ actual class Parser actual constructor() : AutoCloseable {
     override fun close() {
         if (SDK_INT < TIRAMISU) delete(self)
     }
+
+    private external fun nativeParse(
+        source: ByteArray,
+        encoding: InputEncoding,
+        oldTree: Tree?
+    ): Long
+
+    private external fun nativeParse(
+        encoding: InputEncoding,
+        oldTree: Tree?,
+        progressCallback: ParseProgressCallback?,
+        readCallback: (UInt, Point) -> ByteArray?
+    ): Long
 
     /** The type of a log message. */
     @Suppress("unused")

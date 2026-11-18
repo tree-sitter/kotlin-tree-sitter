@@ -105,15 +105,16 @@ actual class Parser actual constructor() {
         val language = checkNotNull(language) {
             "The parser has no language assigned"
         }
+        val bytes = encoding.encode(source)
         val tree = ts_parser_parse_string_encoding(
             self,
             oldTree?.self,
-            source,
-            source.length.convert(),
+            if (bytes.isNotEmpty()) bytes.refTo(0) else null,
+            bytes.size.convert(),
             encoding.value
         )
         checkNotNull(tree) { "Parsing failed" }
-        return Tree(tree, source, language)
+        return Tree(tree, bytes, language, encoding)
     }
 
     /**
@@ -138,16 +139,21 @@ actual class Parser actual constructor() {
         val language = checkNotNull(language) {
             "The parser has no language assigned"
         }
-        val arena = Arena()
-        val payloadRef = StableRef.create(ParsePayload(arena, readCallback))
+        val parsePayload = ParsePayload(readCallback, encoding)
+        val payloadRef = StableRef.create(parsePayload)
         val input = cValue<TSInput> {
             payload = payloadRef.asCPointer()
             this.encoding = encoding.value
             read = staticCFunction { payload, index, point, bytes ->
-                val data = payload!!.asStableRef<ParsePayload>().get()
-                val result = data.callback(index, point.useContents { convert() })
-                bytes!!.pointed.value = result?.length?.convert() ?: 0U
-                result?.toString()?.cstr?.getPointer(data.memScope)
+                val payloadRef = payload!!.asStableRef<ParsePayload>().get()
+                payloadRef.chunk?.unpin()
+                payloadRef.chunk = null
+                bytes!!.pointed.value = 0U
+                val text = payloadRef.callback(index, point.useContents(TSPoint::convert))
+                if (text.isNullOrEmpty()) return@staticCFunction null
+                payloadRef.chunk = payloadRef.encoding.encode(text.toString()).pin()
+                bytes.pointed.value = payloadRef.chunk!!.get().size.convert()
+                payloadRef.chunk!!.addressOf(0)
             }
         }
         var progressRef: StableRef<ParseProgressCallback>? = null
@@ -165,7 +171,7 @@ actual class Parser actual constructor() {
             }
             ts_parser_parse_with_options(self, oldTree?.self, input, options)
         }
-        arena.clear()
+        parsePayload.chunk?.unpin()
         payloadRef.dispose()
         progressRef?.dispose()
         checkNotNull(tree) { "Parsing failed" }
@@ -187,8 +193,9 @@ actual class Parser actual constructor() {
     actual enum class LogType { LEX, PARSE }
 
     private class ParsePayload(
-        val memScope: AutofreeScope,
-        val callback: ParseReadCallback
+        val callback: ParseReadCallback,
+        val encoding: InputEncoding,
+        var chunk: Pinned<ByteArray>? = null
     )
 
     private companion object {
