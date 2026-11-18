@@ -224,7 +224,9 @@ class NodeTest : FunSpec({
     }
 
     test("text()") {
-        rootNode.descendant(6U, 9U)?.text() shouldBe "Foo"
+        val multibyteSource = "// 日本語日本語日本語\nclass Foo {}"
+        val multibyteTree = Parser(language).parse(multibyteSource)
+        multibyteTree.rootNode.descendant(37U, 40U)?.text() shouldBe "Foo"
     }
 
     test("sexp()") {

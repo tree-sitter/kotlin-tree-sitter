@@ -164,7 +164,7 @@ actual class QueryCursor internal constructor(
      * @param predicate A function that handles custom predicates.
      */
     @JvmOverloads
-    actual fun matches(predicate: QueryPredicate.(QueryMatch) -> Boolean) = sequence<QueryMatch> {
+    actual fun matches(predicate: QueryPredicate.(QueryMatch) -> Boolean) = sequence {
         var match = nextMatch(query.captureNames, node.tree)
         while (match != null) {
             val result = match.check(predicate)
@@ -181,16 +181,15 @@ actual class QueryCursor internal constructor(
      * @param predicate A function that handles custom predicates.
      */
     @JvmOverloads
-    actual fun captures(predicate: QueryPredicate.(QueryMatch) -> Boolean) =
-        sequence<Pair<UInt, QueryMatch>> {
-            var capture = nextCapture(query.captureNames, node.tree)
-            while (capture != null) {
-                val index = capture.first
-                val match = capture.second.check(predicate)
-                if (match != null) yield(index to match)
-                capture = nextCapture(query.captureNames, node.tree)
-            }
+    actual fun captures(predicate: QueryPredicate.(QueryMatch) -> Boolean) = sequence {
+        var capture = nextCapture(query.captureNames, node.tree)
+        while (capture != null) {
+            val index = capture.first
+            val match = capture.second.check(predicate)
+            if (match != null) yield(index to match)
+            capture = nextCapture(query.captureNames, node.tree)
         }
+    }
 
     override fun toString() = "QueryCursor(query=$query, node=$node)"
 
@@ -214,7 +213,7 @@ actual class QueryCursor internal constructor(
     private inline fun QueryMatch.check(
         predicate: QueryPredicate.(QueryMatch) -> Boolean
     ): QueryMatch? {
-        if (node.tree.text() == null) return this
+        if (!node.tree.hasText()) return this
         val result = query.predicates[patternIndex.toInt()].all {
             if (it !is QueryPredicate.Generic) it(this) else predicate(it, this)
         }

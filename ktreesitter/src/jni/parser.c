@@ -5,10 +5,7 @@
 typedef struct {
     JNIEnv *env;
     jobject callback;
-    struct {
-        jstring string;
-        const char *chars;
-    } last_result;
+    char *last_result;
 } ReadPayload;
 
 static inline TSInputEncoding get_encoding(JNIEnv *env, jobject encoding) {
@@ -58,37 +55,32 @@ static const char *parse_read_callback(void *payload, uint32_t byte_index, TSPoi
                                        uint32_t *bytes_read) {
     ReadPayload *read_payload = (ReadPayload *)payload;
     JNIEnv *env = read_payload->env;
-    jstring last_string = read_payload->last_result.string;
-    const char *last_chars = read_payload->last_result.chars;
-    if (last_string) {
-        (*env)->ReleaseStringUTFChars(env, last_string, last_chars);
-        read_payload->last_result.string = NULL;
-        read_payload->last_result.chars = NULL;
-    }
     *bytes_read = 0;
 
     jobject point = marshal_point(env, position);
     jobject byte = (*env)->AllocObject(env, global_class_cache.UInt);
     (*env)->SetIntField(env, byte, global_field_cache.UInt_data, (jint)byte_index);
-    jobject char_sequence =
-        CALL_METHOD(Object, read_payload->callback, Function2_invoke, byte, point);
+    jbyteArray bytes =
+        (jbyteArray)CALL_METHOD(Object, read_payload->callback, Function2_invoke, byte, point);
     (*env)->DeleteLocalRef(env, byte);
     (*env)->DeleteLocalRef(env, point);
     if ((*env)->ExceptionCheck(env))
         return NULL;
-    if (char_sequence == NULL)
+    if (bytes == NULL)
         return NULL;
 
-    jstring string = (jstring)CALL_METHOD_NO_ARGS(Object, char_sequence, CharSequence_toString);
-    (*env)->DeleteLocalRef(env, char_sequence);
-    if ((*env)->ExceptionCheck(env))
+    jsize length = (*env)->GetArrayLength(env, bytes);
+    char *buffer = (char *)realloc(read_payload->last_result, (size_t)length + 1);
+    if (bytes == NULL) {
+        (*env)->DeleteLocalRef(env, bytes);
+        THROW(OutOfMemoryError, "Failed to access the source bytes");
         return NULL;
-
-    const char *result = (*env)->GetStringUTFChars(env, string, NULL);
-    *bytes_read = (uint32_t)(*env)->GetStringUTFLength(env, string);
-    read_payload->last_result.string = string;
-    read_payload->last_result.chars = result;
-    return result;
+    }
+    read_payload->last_result = buffer;
+    (*env)->GetByteArrayRegion(env, bytes, 0, length, (jbyte *)buffer);
+    *bytes_read = (uint32_t)length;
+    (*env)->DeleteLocalRef(env, bytes);
+    return buffer;
 }
 
 static bool parse_progress_callback(TSParseState *state) {
@@ -140,8 +132,8 @@ void JNICALL parser_set_included_ranges(JNIEnv *env, jobject this, jobject value
     if (ts_parser_set_included_ranges(self, ts_ranges, size)) {
         (*env)->SetObjectField(env, this, global_field_cache.Parser_includedRanges, value);
     } else {
-        const char *error = "Included ranges must be in ascending order and must not overlap";
-        THROW(IllegalArgumentException, error);
+        THROW(IllegalArgumentException,
+              "Included ranges must be in ascending order and must not overlap");
     }
     free(ts_ranges);
 }
@@ -164,43 +156,33 @@ void JNICALL parser_set_logger(JNIEnv *env, jobject this, jobject value) {
     (*env)->SetObjectField(env, this, global_field_cache.Parser_logger, value);
 }
 
-jobject JNICALL parser_parse__string(JNIEnv *env, jobject this, jstring source, jobject encoding,
-                                     jobject old_tree) {
+jlong JNICALL parser_parse__bytes(JNIEnv *env, jobject this, jbyteArray source, jobject encoding,
+                                  jobject old_tree) {
     TSParser *self = GET_POINTER(TSParser, this, Parser_self);
-    jobject language = GET_FIELD(Object, this, Parser_language);
-    if (language == NULL) {
-        const char *error = "The parser has no language assigned";
-        (*env)->ThrowNew(env, global_class_cache.IllegalStateException, error);
-        return NULL;
-    }
-
     TSTree *old_ts_tree = old_tree ? GET_POINTER(TSTree, old_tree, Tree_self) : NULL;
-    uint32_t length;
-    const char *string = (*env)->GetStringUTFChars(env, source, NULL);
-    length = (uint32_t)(*env)->GetStringUTFLength(env, source);
     TSInputEncoding input_encoding = get_encoding(env, encoding);
-    TSTree *ts_tree =
-        ts_parser_parse_string_encoding(self, old_ts_tree, string, length, input_encoding);
-    (*env)->ReleaseStringUTFChars(env, source, string);
+    jsize length = (*env)->GetArrayLength(env, source);
+    jbyte *string = (*env)->GetByteArrayElements(env, source, NULL);
+    if (string == NULL) {
+        THROW(OutOfMemoryError, "Failed to access the source bytes");
+        return 0;
+    }
+    TSTree *ts_tree = ts_parser_parse_string_encoding(self, old_ts_tree, (const char *)string,
+                                                      (uint32_t)length, input_encoding);
+    (*env)->ReleaseByteArrayElements(env, source, string, JNI_ABORT);
+    if ((*env)->ExceptionCheck(env))
+        return 0;
 
     if (ts_tree == NULL) {
-        const char *error = "Parsing failed";
-        (*env)->ThrowNew(env, global_class_cache.IllegalStateException, error);
-        return NULL;
+        THROW(IllegalStateException, "Parsing failed");
+        return 0;
     }
-    return NEW_OBJECT(Tree, (jlong)ts_tree, source, language);
+    return (jlong)ts_tree;
 }
 
-jobject JNICALL parser_parse__function(JNIEnv *env, jobject this, jobject encoding,
-                                       jobject old_tree, jobject progress_callback,
-                                       jobject read_callback) {
+jlong JNICALL parser_parse__function(JNIEnv *env, jobject this, jobject encoding, jobject old_tree,
+                                     jobject progress_callback, jobject read_callback) {
     TSParser *self = GET_POINTER(TSParser, this, Parser_self);
-    jobject language = GET_FIELD(Object, this, Parser_language);
-    if (language == NULL) {
-        const char *error = "The parser has no language assigned";
-        (*env)->ThrowNew(env, global_class_cache.IllegalStateException, error);
-        return NULL;
-    }
     TSTree *old_ts_tree = old_tree ? GET_POINTER(TSTree, old_tree, Tree_self) : NULL;
 
     ReadPayload read_payload = {.env = env, .callback = read_callback};
@@ -218,17 +200,18 @@ jobject JNICALL parser_parse__function(JNIEnv *env, jobject this, jobject encodi
     TSTree *ts_tree = progress_callback == NULL
                           ? ts_parser_parse(self, old_ts_tree, input)
                           : ts_parser_parse_with_options(self, old_ts_tree, input, options);
+    free(read_payload.last_result);
 
     if ((*env)->ExceptionCheck(env)) {
-        (*env)->Throw(env, (*env)->ExceptionOccurred(env));
-        return NULL;
+        if (ts_tree != NULL)
+            ts_tree_delete(ts_tree);
+        return 0;
     }
     if (ts_tree == NULL) {
-        const char *error = "Parsing failed";
-        (*env)->ThrowNew(env, global_class_cache.IllegalStateException, error);
-        return NULL;
+        THROW(IllegalStateException, "Parsing failed");
+        return 0;
     }
-    return NEW_OBJECT(Tree, (jlong)ts_tree, NULL, language);
+    return (jlong)ts_tree;
 }
 
 void JNICALL parser_reset(JNIEnv *env, jobject this) {
@@ -242,11 +225,11 @@ const JNINativeMethod Parser_methods[] = {
     {"setLanguage", "(L" PACKAGE "Language;)V", (void *)&parser_set_language},
     {"setIncludedRanges", "(Ljava/util/List;)V", (void *)&parser_set_included_ranges},
     {"setLogger", "(Lkotlin/jvm/functions/Function2;)V", (void *)&parser_set_logger},
-    {"parse", "(Ljava/lang/String;L" PACKAGE "InputEncoding;L" PACKAGE "Tree;)L" PACKAGE "Tree;",
-     (void *)&parser_parse__string},
-    {"parse",
+    {"nativeParse", "([BL" PACKAGE "InputEncoding;L" PACKAGE "Tree;)J",
+     (void *)&parser_parse__bytes},
+    {"nativeParse",
      "(L" PACKAGE "InputEncoding;L" PACKAGE "Tree;Lkotlin/jvm/functions/Function2;"
-     "Lkotlin/jvm/functions/Function2;)L" PACKAGE "Tree;",
+     "Lkotlin/jvm/functions/Function2;)J",
      (void *)&parser_parse__function},
     {"reset", "()V", (void *)&parser_reset},
 };

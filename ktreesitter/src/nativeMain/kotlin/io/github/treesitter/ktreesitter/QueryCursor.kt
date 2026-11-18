@@ -175,7 +175,7 @@ actual class QueryCursor internal constructor(
      *
      * @param predicate A function that handles custom predicates.
      */
-    actual fun matches(predicate: QueryPredicate.(QueryMatch) -> Boolean) = sequence<QueryMatch> {
+    actual fun matches(predicate: QueryPredicate.(QueryMatch) -> Boolean) = sequence {
         memScoped {
             val match = alloc<TSQueryMatch>()
             while (ts_query_cursor_next_match(self, match.ptr)) {
@@ -191,16 +191,15 @@ actual class QueryCursor internal constructor(
      *
      * @param predicate A function that handles custom predicates.
      */
-    actual fun captures(predicate: QueryPredicate.(QueryMatch) -> Boolean) =
-        sequence<Pair<UInt, QueryMatch>> {
-            memScoped {
-                val match = alloc<TSQueryMatch>()
-                val index = alloc<UIntVar>()
-                while (ts_query_cursor_next_capture(self, match.ptr, index.ptr)) {
-                    match.convert(predicate)?.let { yield(index.value to it) }
-                }
+    actual fun captures(predicate: QueryPredicate.(QueryMatch) -> Boolean) = sequence {
+        memScoped {
+            val match = alloc<TSQueryMatch>()
+            val index = alloc<UIntVar>()
+            while (ts_query_cursor_next_capture(self, match.ptr, index.ptr)) {
+                match.convert(predicate)?.let { yield(index.value to it) }
             }
         }
+    }
 
     override fun toString() = "QueryCursor(query=$query, node=$node)"
 
@@ -216,10 +215,9 @@ actual class QueryCursor internal constructor(
             )
         }
         return QueryMatch(index, captures).takeIf { match ->
-            node.tree.text() == null ||
-                query.predicates[index.toInt()].all {
-                    if (it !is QueryPredicate.Generic) it(match) else predicate(it, match)
-                }
+            !node.tree.hasText() || query.predicates[index.toInt()].all {
+                if (it !is QueryPredicate.Generic) it(match) else predicate(it, match)
+            }
         }
     }
 }
