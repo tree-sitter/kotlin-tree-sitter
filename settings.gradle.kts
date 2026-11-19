@@ -11,6 +11,8 @@ pluginManagement {
 
 include(":ktreesitter")
 
-file("languages").listFiles { file -> file.isDirectory }?.forEach {
+file("languages").listFiles {
+    it.isDirectory && it.name[0] != '.'
+}?.forEach {
     include(":languages:${it.name}")
 }

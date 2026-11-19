@@ -8,7 +8,7 @@ local.properties
 
 ### C ###
 .cache/
-.cmake/
+.cxx/
 *.a
 *.lib
 *.so

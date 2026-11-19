@@ -3,6 +3,7 @@ name: Publish
 on:
   push:
     tags: ["*"]
+  workflow_dispatch:
 
 concurrency:
   cancel-in-progress: true
@@ -16,29 +17,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             platform: linux
             arch: x64
-            lib: libktreesitter.so
-            cmake_args: >-
-              -DCMAKE_BUILD_TYPE=RelWithDebugInfo
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             platform: linux
             arch: aarch64
-            lib: libktreesitter.so
             cmake_args: >-
-              -DCMAKE_BUILD_TYPE=RelWithDebugInfo
               -DCMAKE_SYSTEM_PROCESSOR=aarch64
               -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc
               -DCMAKE_FIND_ROOT_PATH=/usr/aarch64-linux-gnu
-          - os: windows-latest
+          - os: windows-2022
             platform: windows
             arch: x64
-            lib: ktreesitter.dll
-          - os: macos-latest
+          - os: macos-15
             platform: macos
             arch: aarch64
-            lib: libktreesitter.dylib
             cmake_args: >-
               -DCMAKE_OSX_ARCHITECTURES=arm64
     steps:
@@ -47,30 +41,37 @@ jobs:
         with:
           submodules: true
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
           architecture: ${{matrix.arch}}
+      - name: Set up CMake & Ninja
+        uses: lukka/get-cmake@v4.5.0
+      - name: Set up MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        if: matrix.platform == 'windows'
       - name: Set up cross compilation
-        run: sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
-        if: runner.os == 'Linux' && matrix.arch == 'aarch64'
+        if: matrix.platform == 'linux' && matrix.arch == 'aarch64'
+        run: |-
+          sudo apt-get update
+          sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
       - name: Configure CMake
         working-directory: ktreesitter
         run: >-
-          cmake -B .cmake/build ${{matrix.cmake_args}}
-          -DCMAKE_INSTALL_LIBDIR=lib/${{matrix.platform}}/${{matrix.arch}}
-          -DCMAKE_INSTALL_BINDIR=lib/${{matrix.platform}}/${{matrix.arch}}
+          cmake -B .cxx/build ${{matrix.cmake_args}} -G Ninja
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=.cxx/dist
+          -DCMAKE_INSTALL_${{env.DIR_TYPE}}DIR=lib/${{matrix.platform}}/${{matrix.arch}}
+        env:
+          DIR_TYPE: ${{matrix.platform == 'windows' && 'BIN' || 'LIB'}}
       - name: Build JNI library
         working-directory: ktreesitter
-        run: |-
-          cmake --build .cmake/build --config Release
-          cmake --install .cmake/build --config Release --prefix .cmake/build
+        run: cmake --build .cxx/build --target install
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
           name: ktreesitter-lib-${{matrix.platform}}-${{matrix.arch}}
-          path: ktreesitter/.cmake/build/lib/**
+          path: ktreesitter/.cxx/dist/lib/**
           retention-days: 2
   build-jars:
     runs-on: ${{matrix.os}}
@@ -83,7 +84,6 @@ jobs:
           - os: ubuntu-latest
             platform: common
             targets: >-
-              generateGrammarFiles
               :ktreesitter:publishKotlinMultiplatformPublicationToLocalRepository
           - os: ubuntu-latest
             platform: JVM
@@ -96,18 +96,15 @@ jobs:
           - os: ubuntu-latest
             platform: Linux
             targets: >-
-              generateGrammarFiles
               :ktreesitter:publishLinuxX64PublicationToLocalRepository
               :ktreesitter:publishLinuxArm64PublicationToLocalRepository
           - os: windows-latest
             platform: Windows
             targets: >-
-              generateGrammarFiles
               :ktreesitter:publishMingwX64PublicationToLocalRepository
           - os: macos-latest
             platform: macOS/iOS
             targets: >-
-              generateGrammarFiles
               :ktreesitter:publishMacosArm64PublicationToLocalRepository
               :ktreesitter:publishIosArm64PublicationToLocalRepository
               :ktreesitter:publishIosSimulatorArm64PublicationToLocalRepository
@@ -117,7 +114,7 @@ jobs:
         with:
           submodules: true
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
@@ -125,6 +122,8 @@ jobs:
           cache-dependency-path: |
             gradle/libs.versions.toml
             gradle/wrapper/gradle-wrapper.properties
+      - name: Set up CMake & Ninja
+        uses: lukka/get-cmake@v4.5.0
       - name: Cache Kotlin/Native dependencies
         uses: actions/cache@v6
         with:
@@ -135,20 +134,15 @@ jobs:
         run: |-
           sudo apt-get update
           sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
-      - name: Set up Ninja
-        if: matrix.platform == 'Android'
-        run: |-
-          sudo apt-get update
-          sudo apt-get install -qy ninja-build
       - name: Download library artifacts
-        uses: actions/download-artifact@v8
         if: matrix.platform == 'JVM'
+        uses: actions/download-artifact@v8
         with:
           path: ktreesitter/src/jvmMain/resources/lib
           pattern: ktreesitter-lib-*
           merge-multiple: true
       - name: Build packages
-        run: ./gradlew --no-daemon -P "cmake.version=4.4.5" ${{matrix.targets}}
+        run: ./gradlew --no-daemon ${{matrix.targets}}
         env:
           SIGNING_KEY: ${{secrets.SIGNING_KEY}}
           SIGNING_PASSWORD: ${{secrets.SIGNING_PASSWORD}}
@@ -163,6 +157,7 @@ jobs:
   publish-library:
     runs-on: ubuntu-latest
     name: Publish packages on Maven Central
+    if: github.event_name != 'workflow_dispatch'
     needs: [build-jars]
     permissions:
       contents: write
@@ -205,6 +200,7 @@ jobs:
   publish-plugin:
     runs-on: ubuntu-latest
     name: Publish plugin on Gradle Portal
+    if: github.event_name != 'workflow_dispatch'
     needs: [build-jars]
     environment:
       name: gradle-plugin-portal
@@ -215,7 +211,7 @@ jobs:
         with:
           submodules: true
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17

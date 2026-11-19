@@ -25,31 +25,6 @@ git clone https://github.com/tree-sitter/kotlin-tree-sitter
 cd kotlin-tree-sitter
 ```
 
-### Build the JNI libraries
-
-*This step is only necessary for JVM or Android development.*
-
-Generate the grammar files:
-
-```shell
-./gradlew generateGrammarFiles
-```
-
-Set the `CMAKE_INSTALL_LIBDIR` environment variable.
-The value depends on your system:
-
-- `lib/linux/x64`
-- `lib/linux/aarch64`
-- `lib/macos/x64`
-- `lib/macos/aarch64`
-- `lib/windows/x64`
-
-Build the libraries (change `.sh` to `.ps1` on Windows):
-
-```shell
-./.github/scripts/build-jni.sh
-```
-
 ### Run the tests
 
 #### JVM
@@ -60,10 +35,8 @@ Build the libraries (change `.sh` to `.ps1` on Windows):
 
 #### Android
 
-*Requires a connected device.*
-
 ```shell
-./gradlew :ktreesitter:connectedDebugAndroidTest
+./gradlew :ktreesitter:emulatorDebugAndroidTest
 ```
 
 #### Native

@@ -44,6 +44,8 @@ jobs:
           cache-dependency-path: |
             gradle/libs.versions.toml
             gradle/wrapper/gradle-wrapper.properties
+      - name: Set up CMake & Ninja
+        uses: lukka/get-cmake@v4.5.0
       - name: Cache Kotlin/Native dependencies
         uses: actions/cache@v6
         with:
@@ -53,10 +55,8 @@ jobs:
         run: |-
           sudo apt-get update
           sudo apt-get install -qy {binutils,gcc}-aarch64-linux-gnu
-      - name: Build documentation
-        run: >-
-          ./gradlew --no-daemon -P "cmake.version=4.4.5"
-          generateFiles :ktreesitter:dokkaGeneratePublicationHtml
+      - name: Run tests
+        run: ./gradlew --no-daemon generateFiles :ktreesitter:dokkaGeneratePublicationHtml
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v5
         with:
