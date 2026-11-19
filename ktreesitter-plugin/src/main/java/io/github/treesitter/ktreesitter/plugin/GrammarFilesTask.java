@@ -5,8 +5,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -19,7 +17,6 @@ import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.tasks.*;
 
 /** The task that generates the source files for the grammar. */
-@NonNullApi
 @CacheableTask
 public abstract class GrammarFilesTask extends DefaultTask {
     private File grammarDir;

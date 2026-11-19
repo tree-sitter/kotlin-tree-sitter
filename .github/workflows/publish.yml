@@ -129,7 +129,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.konan
-          key: konan-${{runner.os}}-${{runner.arch}}-2.3.21
+          key: konan-${{runner.os}}-${{runner.arch}}-2.4.21
       - name: Set up cross compilation
         if: matrix.platform == 'Linux'
         run: |-
@@ -227,7 +227,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: ~/.konan
-          key: konan-${{runner.os}}-${{runner.arch}}-2.3.21
+          key: konan-${{runner.os}}-${{runner.arch}}-2.4.21
       - name: Publish Gradle plugin
         run: ./gradlew --no-daemon :ktreesitter-plugin:publishPlugins
         env:

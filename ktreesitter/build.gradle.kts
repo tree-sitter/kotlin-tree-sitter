@@ -1,18 +1,22 @@
+import com.android.build.api.dsl.LibraryExtension
 import java.io.OutputStream.nullOutputStream
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.kotlin.dsl.support.useToRun
 import org.jetbrains.dokka.gradle.tasks.DokkaGeneratePublicationTask
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
+interface InjectedExecOps {
+    @get:Inject val execOps: ExecOperations
+}
+
 inline val File.unixPath: String
     get() = if (!os.isWindows) path else path.replace("\\", "/")
 
 fun KotlinNativeTarget.treesitter() {
-    compilations.configureEach {
+    compilations.named("main") {
         cinterops.register("treesitter") {
             val srcDir = treesitterDir.resolve("lib/src")
             val includeDir = treesitterDir.resolve("lib/include")
@@ -67,7 +71,6 @@ kotlin {
     sourceSets {
         commonMain {
             languageSettings {
-                @OptIn(ExperimentalKotlinGradlePluginApi::class)
                 compilerOptions {
                     freeCompilerArgs.addAll("-Xexpect-actual-classes")
                 }
@@ -106,7 +109,7 @@ kotlin {
     }
 }
 
-android {
+configure<LibraryExtension> {
     namespace = "io.github.treesitter.$name"
     compileSdk = (property("sdk.version.compile") as String).toInt()
     ndkVersion = property("ndk.version") as String
@@ -145,6 +148,7 @@ android {
 }
 
 tasks.register<Jar>("javadocJar") {
+    description = "Create javadoc JAR"
     group = "documentation"
     archiveClassifier.set("javadoc")
     from(files(rootDir.resolve("README.md")))
@@ -263,11 +267,9 @@ tasks.withType<KotlinJvmCompile>().configureEach {
 }
 
 // TODO: replace with cmake
-@Suppress("DEPRECATION")
 tasks.withType<CInteropProcess>().configureEach {
-    if (name.startsWith("cinteropTest")) return@configureEach
-
-    val runKonan = File(konanHome.get()).resolve("bin")
+    val execOps = project.objects.newInstance<InjectedExecOps>().execOps
+    val runKonan = File(project.extra["konanHome"] as String).resolve("bin")
         .resolve(if (os.isWindows) "run_konan.bat" else "run_konan").path
     val libFile = libsDir.dir(konanTarget.name).file(
         "${konanTarget.family.staticPrefix}tree-sitter.${konanTarget.family.staticSuffix}"
@@ -291,14 +293,14 @@ tasks.withType<CInteropProcess>().configureEach {
             write(treesitterDir.resolve("lib/src/lib.c").unixPath + "\n")
         }
 
-        exec {
+        execOps.exec {
             executable = runKonan
             workingDir = treesitterDir
             standardOutput = nullOutputStream()
             args("clang", "clang", konanTarget.name, "@" + argsFile.path)
         }
 
-        exec {
+        execOps.exec {
             executable = runKonan
             workingDir = treesitterDir
             standardOutput = nullOutputStream()

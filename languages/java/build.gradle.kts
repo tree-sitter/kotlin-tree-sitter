@@ -1,15 +1,19 @@
+import com.android.build.api.dsl.LibraryExtension
 import java.io.OutputStream.nullOutputStream
 import org.gradle.internal.os.OperatingSystem
 import org.gradle.kotlin.dsl.support.useToRun
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
+
+interface InjectedExecOps {
+    @get:Inject val execOps: ExecOperations
+}
 
 inline val File.unixPath: String
     get() = if (!os.isWindows) path else path.replace("\\", "/")
 
 fun KotlinNativeTarget.treesitterJava() {
-    compilations.configureEach {
+    compilations.named("main") {
         cinterops.create("treesitterJava") {
             definitionFile.set(generateTask.interopFile)
             includeDirs.allHeaders(grammarDir.resolve("bindings/c"))
@@ -69,7 +73,6 @@ kotlin {
         }
 
         commonMain {
-            @OptIn(ExperimentalKotlinGradlePluginApi::class)
             languageSettings {
                 compilerOptions {
                     freeCompilerArgs.add("-Xexpect-actual-classes")
@@ -87,7 +90,7 @@ kotlin {
     }
 }
 
-android {
+configure<LibraryExtension> {
     namespace = "io.github.treesitter.ktreesitter.${grammar.grammarName.get()}"
     compileSdk = (property("sdk.version.compile") as String).toInt()
     ndkVersion = property("ndk.version") as String
@@ -98,6 +101,9 @@ android {
             abiFilters += setOf("x86_64", "arm64-v8a", "armeabi-v7a")
         }
         resValue("string", "version", version as String)
+    }
+    buildFeatures {
+        resValues = true
     }
     externalNativeBuild {
         cmake {
@@ -117,17 +123,15 @@ tasks.getByName("compileKotlinJvm").mustRunAfter(generateTask)
 tasks.getByName("jvmProcessResources").mustRunAfter(generateTask)
 
 // TODO: replace with cmake
-@Suppress("DEPRECATION")
 tasks.withType<CInteropProcess>().configureEach {
-    if (name.startsWith("cinteropTest")) return@configureEach
-
+    val execOps = project.objects.newInstance<InjectedExecOps>().execOps
+    val runKonan = File(project.extra["konanHome"] as String).resolve("bin")
+        .resolve(if (os.isWindows) "run_konan.bat" else "run_konan").path
     val srcDir = grammarDir.resolve("src")
     val grammarFiles =
         if (!srcDir.resolve("scanner.c").isFile) arrayOf(srcDir.resolve("parser.c"))
         else arrayOf(srcDir.resolve("parser.c"), srcDir.resolve("scanner.c"))
     val grammarName = grammar.grammarName.get()
-    val runKonan = File(konanHome.get()).resolve("bin")
-        .resolve(if (os.isWindows) "run_konan.bat" else "run_konan").path
     val libFile = libsDir.dir(konanTarget.name).file("libtree-sitter-$grammarName.a").asFile
     val objectFiles = grammarFiles.map {
         grammarDir.resolve(it.nameWithoutExtension + ".o").path
@@ -147,14 +151,14 @@ tasks.withType<CInteropProcess>().configureEach {
             grammarFiles.forEach { write(it.unixPath + "\n") }
         }
 
-        exec {
+        execOps.exec {
             executable = runKonan
             workingDir = grammarDir
             standardOutput = nullOutputStream()
             args("clang", "clang", konanTarget.name, "@" + argsFile.path)
         }
 
-        exec {
+        execOps.exec {
             executable = runKonan
             workingDir = grammarDir
             standardOutput = nullOutputStream()
