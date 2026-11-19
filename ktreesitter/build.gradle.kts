@@ -133,8 +133,22 @@ configure<LibraryExtension> {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    testOptions.unitTests.all {
-        it.useJUnitPlatform()
+    testOptions {
+        unitTests.all {
+            it.enabled = false
+        }
+        @Suppress("UnstableApiUsage")
+        managedDevices {
+            localDevices {
+                create("emulator") {
+                    device = "Pixel 2"
+                    apiLevel = 33
+                    systemImageSource = "aosp-atd"
+                    testedAbi = "x86_64"
+                    require64Bit = true
+                }
+            }
+        }
     }
     packaging.resources {
         excludes += setOf(

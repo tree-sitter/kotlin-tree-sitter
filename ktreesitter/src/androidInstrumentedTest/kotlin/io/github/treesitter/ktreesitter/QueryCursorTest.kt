@@ -57,8 +57,8 @@ class QueryCursorTest :
 
         test("containingPointRange") {
             val cursor = query(tree.rootNode)
-            cursor.cointainingPointRange = Point(0U, 10U)..Point.MAX
-            cursor.cointainingPointRange.start shouldBe Point(0U, 10U)
+            cursor.containingPointRange = Point(0U, 10U)..Point.MAX
+            cursor.containingPointRange.start shouldBe Point(0U, 10U)
         }
 
         test("didExceedMatchLimit") {
