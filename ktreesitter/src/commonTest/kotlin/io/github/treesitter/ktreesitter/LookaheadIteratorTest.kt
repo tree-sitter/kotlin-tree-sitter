@@ -3,7 +3,9 @@ package io.github.treesitter.ktreesitter
 import io.github.treesitter.ktreesitter.java.TreeSitterJava
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.*
+import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.*
+import io.kotest.matchers.nulls.shouldBeNull
 
 class LookaheadIteratorTest : FunSpec({
     val language = Language(TreeSitterJava.language())
@@ -12,7 +14,7 @@ class LookaheadIteratorTest : FunSpec({
 
     test("currentSymbol") {
         lookahead.currentSymbol shouldBe UShort.MAX_VALUE
-        lookahead.currentSymbolName shouldBe "ERROR"
+        lookahead.currentSymbolName.shouldBeNull()
     }
 
     test("next()") {
@@ -20,8 +22,8 @@ class LookaheadIteratorTest : FunSpec({
     }
 
     test("reset()") {
-        lookahead.reset(state) shouldBe true
-        lookahead.reset(state, language) shouldBe true
+        lookahead.reset(state).shouldBeTrue()
+        lookahead.reset(state, language).shouldBeTrue()
     }
 
     test("symbols()") {

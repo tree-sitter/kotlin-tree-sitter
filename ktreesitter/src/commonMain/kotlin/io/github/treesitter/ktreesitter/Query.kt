@@ -143,4 +143,11 @@ expect class Query @Throws(QueryError::class) constructor(language: Language, so
      */
     @Throws(IndexOutOfBoundsException::class)
     fun isPatternGuaranteedAtStep(offset: UInt): Boolean
+
+    /**
+     * Create a copy of the query.
+     *
+     * @since 0.27.0
+     */
+    fun copy(): Query
 }

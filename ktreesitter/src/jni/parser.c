@@ -71,7 +71,7 @@ static const char *parse_read_callback(void *payload, uint32_t byte_index, TSPoi
 
     jsize length = (*env)->GetArrayLength(env, bytes);
     char *buffer = (char *)realloc(read_payload->last_result, (size_t)length + 1);
-    if (bytes == NULL) {
+    if (buffer == NULL) {
         (*env)->DeleteLocalRef(env, bytes);
         THROW(OutOfMemoryError, "Failed to access the source bytes");
         return NULL;

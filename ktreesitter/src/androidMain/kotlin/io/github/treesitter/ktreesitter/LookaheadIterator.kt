@@ -43,9 +43,9 @@ actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal
     /**
      * The current symbol name.
      *
-     * Newly created lookahead iterators will contain the `ERROR` symbol.
+     * Newly created lookahead iterators are not positioned on a symbol.
      */
-    actual val currentSymbolName: String
+    actual val currentSymbolName: String?
         @FastNative external get
 
     /**
@@ -75,7 +75,7 @@ actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal
         reset(state)
         return sequence {
             while (nativeNext()) {
-                yield(currentSymbolName)
+                yield(currentSymbolName!!)
             }
         }
     }
@@ -85,7 +85,7 @@ actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal
     }
 
     actual override fun computeNext() = if (nativeNext()) {
-        setNext(Symbol(currentSymbol, currentSymbolName))
+        setNext(Symbol(currentSymbol, currentSymbolName!!))
     } else {
         done()
     }
