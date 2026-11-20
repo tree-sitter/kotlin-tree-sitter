@@ -10,6 +10,7 @@ import org.gradle.api.Project;
  * <a href="https://tree-sitter.github.io/kotlin-tree-sitter/">KTreeSitter</a>
  * grammar packages.
  */
+@SuppressWarnings("unused")
 public abstract class GrammarPlugin implements Plugin<Project> {
     @Override
     public void apply(Project project) {
