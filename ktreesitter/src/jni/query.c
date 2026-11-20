@@ -104,6 +104,8 @@ jlong query_init(JNIEnv *env, jclass _class, jlong language, jstring source) {
     return -1;
 }
 
+jlong JNICALL query_copy CRITICAL_ARGS(jlong self) { return (jlong)ts_query_copy((TSQuery *)self); }
+
 void query_delete CRITICAL_ARGS(jlong query) { ts_query_delete((TSQuery *)query); }
 
 jint query_native_pattern_count(JNIEnv *env, jobject this) {
@@ -233,6 +235,7 @@ jobject query_predicates_for_pattern(JNIEnv *env, jobject this, jint index) {
 
 const JNINativeMethod Query_methods[] = {
     {"init", "(JLjava/lang/String;)J", (void *)&query_init},
+    {"copy", "(J)J", (void *)&query_copy},
     {"delete", "(J)V", (void *)&query_delete},
     {"nativePatternCount", "()I", (void *)&query_native_pattern_count},
     {"nativeCaptureCount", "()I", (void *)&query_native_capture_count},

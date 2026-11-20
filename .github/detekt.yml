@@ -6,6 +6,7 @@ complexity:
     active: false
   LongParameterList:
     functionThreshold: 7
+    constructorThreshold: 9
 
 performance:
   SpreadOperator:

@@ -1,5 +1,6 @@
 package io.github.treesitter.ktreesitter
 
+import cnames.structs.TSQuery
 import io.github.treesitter.ktreesitter.internal.*
 import kotlin.experimental.ExperimentalNativeApi
 import kotlin.native.ref.createCleaner
@@ -7,66 +8,27 @@ import kotlinx.cinterop.*
 
 /**
  * A class that represents a set of patterns which match nodes in a syntax tree.
- *
- * @constructor
- *  Create a new query from a particular language and a
- *  string containing one or more S-expression patterns.
- * @throws [QueryError] If any error occurred while creating the query.
  */
 @OptIn(ExperimentalForeignApi::class)
-actual class Query @Throws(QueryError::class) actual constructor(
+actual class Query private constructor(
+    internal val self: CPointer<TSQuery>,
     private val language: Language,
-    private val source: String
+    private val source: String,
+    predicates: List<MutableList<QueryPredicate>>? = null,
+    settings: List<MutableMap<String, String?>>? = null,
+    assertions: List<MutableMap<String, Pair<String?, Boolean>>>? = null,
+    captureNames: List<String>? = null,
+    stringValues: List<String>? = null
 ) {
-    internal val self = init(language, source)
-
-    /** The number of patterns in the query. */
-    actual val patternCount: UInt = ts_query_pattern_count(self)
-
-    /** The number of captures in the query. */
-    @Deprecated("captureCount is deprecated", ReplaceWith("captureNames.size"))
-    actual val captureCount: UInt
-        get() = ts_query_capture_count(self)
-
-    internal val predicates = List(patternCount.toInt()) { mutableListOf<QueryPredicate>() }
-
-    private val settings = List(patternCount.toInt()) { mutableMapOf<String, String?>() }
-
-    private val assertions = List(patternCount.toInt()) {
-        mutableMapOf<String, Pair<String?, Boolean>>()
-    }
-
     /**
-     * The capture names used in the query.
+     * Create a new query from a particular language and a
+     * string containing one or more S-expression patterns.
      *
-     * @since 0.25.0
+     * @throws [QueryError] If any error occurred while creating the query.
      */
-    actual val captureNames = List(ts_query_capture_count(self).convert()) {
-        memScoped {
-            val length = alloc<UIntVar>()
-            val name = ts_query_capture_name_for_id(self, it.convert(), length.ptr)
-            if (name == null || length.value == 0U)
-                error("Failed to get capture name at index $it")
-            name.toKString()
-        }
-    }
-
-    /**
-     * The string literals used in the query.
-     *
-     * @since 0.25.0
-     */
-    actual val stringValues = List(ts_query_string_count(self).convert()) {
-        memScoped {
-            val length = alloc<UIntVar>()
-            val value = ts_query_string_value_for_id(self, it.convert(), length.ptr)
-            if (value == null || length.value == 0U)
-                error("Failed to get string value at index $it")
-            value.toKString()
-        }
-    }
-
-    init {
+    @Throws(QueryError::class)
+    actual constructor(language: Language, source: String) :
+        this(init(language, source), language, source) {
         for (i in 0U..<patternCount) {
             var steps = 0U
             var tokens = memScoped {
@@ -257,7 +219,8 @@ actual class Query @Throws(QueryError::class) actual constructor(
                                 val value = captureNames[t2.value_id]
                                 throw QueryError.Predicate(
                                     row,
-                                    "second argument to #$pred must be a string literal, got @$value"
+                                    "second argument to #$pred must be a string literal, " +
+                                        "got @$value"
                                 )
                             }
                             stringValues[t2.value_id]
@@ -289,6 +252,55 @@ actual class Query @Throws(QueryError::class) actual constructor(
     @Suppress("unused")
     @OptIn(ExperimentalNativeApi::class)
     private val cleaner = createCleaner(self, ::ts_query_delete)
+
+    /** The number of patterns in the query. */
+    actual val patternCount: UInt = ts_query_pattern_count(self)
+
+    /** The number of captures in the query. */
+    @Deprecated("captureCount is deprecated", ReplaceWith("captureNames.size"))
+    actual val captureCount: UInt
+        get() = ts_query_capture_count(self)
+
+    /**
+     * The capture names used in the query.
+     *
+     * @since 0.25.0
+     */
+    actual val captureNames: List<String> =
+        captureNames ?: List(ts_query_capture_count(self).convert()) {
+            memScoped {
+                val length = alloc<UIntVar>()
+                val name = ts_query_capture_name_for_id(self, it.convert(), length.ptr)
+                if (name == null || length.value == 0U)
+                    error("Failed to get capture name at index $it")
+                name.toKString()
+            }
+        }
+
+    /**
+     * The string literals used in the query.
+     *
+     * @since 0.25.0
+     */
+    actual val stringValues: List<String> =
+        stringValues ?: List(ts_query_string_count(self).convert()) {
+            memScoped {
+                val length = alloc<UIntVar>()
+                val value = ts_query_string_value_for_id(self, it.convert(), length.ptr)
+                if (value == null || length.value == 0U)
+                    error("Failed to get string value at index $it")
+                value.toKString()
+            }
+        }
+
+    internal val predicates: List<MutableList<QueryPredicate>> =
+        predicates ?: List(patternCount.toInt()) { mutableListOf() }
+
+    private val settings: List<MutableMap<String, String?>> =
+        settings ?: List(patternCount.toInt()) { mutableMapOf() }
+
+    private val assertions: List<MutableMap<String, Pair<String?, Boolean>>> =
+        assertions ?: List(patternCount.toInt()) { mutableMapOf() }
 
     /**
      * Execute the query on the given [Node].
@@ -428,6 +440,22 @@ actual class Query @Throws(QueryError::class) actual constructor(
             throw IndexOutOfBoundsException("Offset $offset exceeds EOF")
         return ts_query_is_pattern_guaranteed_at_step(self, offset)
     }
+
+    /**
+     * Create a copy of the query.
+     *
+     * @since 0.27.0
+     */
+    actual fun copy() = Query(
+        ts_query_copy(self)!!,
+        language,
+        source,
+        predicates,
+        settings,
+        assertions,
+        captureNames,
+        stringValues
+    )
 
     override fun toString() = "Query(language=$language, source=$source)"
 

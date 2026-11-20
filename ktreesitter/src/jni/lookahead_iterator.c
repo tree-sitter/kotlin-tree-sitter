@@ -26,7 +26,7 @@ jshort JNICALL lookahead_iterator_get_current_symbol(JNIEnv *env, jobject this) 
 jstring JNICALL lookahead_iterator_get_current_symbol_name(JNIEnv *env, jobject this) {
     TSLookaheadIterator *self = GET_POINTER(TSLookaheadIterator, this, LookaheadIterator_self);
     const char *name = ts_lookahead_iterator_current_symbol_name(self);
-    return (*env)->NewStringUTF(env, name);
+    return name != NULL ? (*env)->NewStringUTF(env, name) : NULL;
 }
 
 jboolean JNICALL lookahead_iterator_reset(JNIEnv *env, jobject this, jshort state,

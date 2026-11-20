@@ -1,18 +1,77 @@
+import com.android.build.api.dsl.LibraryExtension
 import java.io.OutputStream.nullOutputStream
 import org.gradle.internal.os.OperatingSystem
-import org.gradle.kotlin.dsl.support.useToRun
 import org.jetbrains.dokka.gradle.tasks.DokkaGeneratePublicationTask
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
 import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
+import org.jetbrains.kotlin.konan.target.HostManager
+import org.jetbrains.kotlin.konan.target.PlatformManager
 
 inline val File.unixPath: String
-    get() = if (!os.isWindows) path else path.replace("\\", "/")
+    get() = if (!os.isWindows) path else path.replace(File.pathSeparatorChar, '/')
 
 fun KotlinNativeTarget.treesitter() {
-    compilations.configureEach {
+    val suffix = name.replaceFirstChar(Char::uppercaseChar)
+    val buildDir = layout.buildDirectory.dir("cmake/${konanTarget.name}")
+    val libDir = libsDir.dir(konanTarget.name).asFile
+
+    val configureTreesitter = tasks.register<Exec>("configureTreesitter$suffix") {
+        group = "build"
+        description = "Configure the static library for ${konanTarget.name}"
+        executable = "cmake"
+        standardOutput = nullOutputStream()
+
+        onlyIf { HostManager().isEnabled(konanTarget) }
+
+        val konanHome = project.extra["konanHome"] as String
+        inputs.property("konanHome", konanHome)
+        inputs.file(treesitterDir.resolve("CMakeLists.txt"))
+        outputs.file(buildDir.map { it.file("CMakeCache.txt") })
+
+        doFirst {
+            val platform = PlatformManager(konanHome).platform(konanTarget)
+            val llvmDir = File(platform.absoluteLlvmHome, "bin")
+            val cFlags = platform.clang.clangArgs + "-DTREE_SITTER_HIDE_SYMBOLS"
+            val exe = if (os.isWindows) ".exe" else ""
+
+            args("-S", treesitterDir.unixPath, "-B", buildDir.get().asFile.unixPath)
+            args("-G", "Ninja", "-DCMAKE_BUILD_TYPE=RelWithDebInfo")
+            args("-DCMAKE_C_COMPILER=" + llvmDir.resolve("clang$exe").unixPath)
+            args("-DCMAKE_AR=" + llvmDir.resolve("llvm-ar$exe").unixPath)
+            args("-DCMAKE_C_FLAGS=" + cFlags.joinToString(" "))
+            args("-DBUILD_SHARED_LIBS=OFF", "-DAMALGAMATED=ON")
+            args("-DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY")
+            args("-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=" + libDir.unixPath)
+            if (konanTarget.family.isAppleFamily) {
+                args("-DCMAKE_OSX_SYSROOT=" + platform.absoluteTargetSysRoot)
+                args("-DCMAKE_OSX_DEPLOYMENT_TARGET=")
+            }
+        }
+    }
+
+    val buildTreesitter = tasks.register<Exec>("buildTreesitter$suffix") {
+        group = "build"
+        description = "Build the static library for ${konanTarget.name}"
+        executable = "cmake"
+        standardOutput = nullOutputStream()
+
+        onlyIf { HostManager().isEnabled(konanTarget) }
+
+        args("--build", buildDir.get().asFile.unixPath)
+
+        inputs.files(configureTreesitter)
+        inputs.files(treesitterDir.resolve("lib/src"), treesitterDir.resolve("lib/include"))
+        outputs.file(libDir.resolve("libtree-sitter.a"))
+    }
+
+    tasks.withType<CInteropProcess>().configureEach {
+        if (konanTarget == this@treesitter.konanTarget)
+            inputs.files(buildTreesitter)
+    }
+
+    compilations.named("main") {
         cinterops.register("treesitter") {
             val srcDir = treesitterDir.resolve("lib/src")
             val includeDir = treesitterDir.resolve("lib/include")
@@ -26,6 +85,21 @@ fun KotlinNativeTarget.treesitter() {
 val os: OperatingSystem = OperatingSystem.current()
 val libsDir = layout.buildDirectory.get().dir("libs")
 val treesitterDir = rootDir.resolve("tree-sitter")
+val jniBuildDir = layout.buildDirectory.dir("cmake/jni")
+val jniLibDir = buildString {
+    append("lib/")
+    when {
+        os.isLinux -> append("linux/")
+        os.isMacOsX -> append("macos/")
+        os.isWindows -> append("windows/")
+        else -> throw GradleException("Unsupported operating system: $os")
+    }
+    when (val arch = System.getProperty("os.arch")) {
+        "amd64", "x86_64" -> append("x64")
+        "aarch64", "arm64" -> append("aarch64")
+        else -> throw GradleException("Unsupported architecture: $arch")
+    }
+}
 
 version = property("project.version") as String
 
@@ -67,7 +141,6 @@ kotlin {
     sourceSets {
         commonMain {
             languageSettings {
-                @OptIn(ExperimentalKotlinGradlePluginApi::class)
                 compilerOptions {
                     freeCompilerArgs.addAll("-Xexpect-actual-classes")
                 }
@@ -106,7 +179,7 @@ kotlin {
     }
 }
 
-android {
+configure<LibraryExtension> {
     namespace = "io.github.treesitter.$name"
     compileSdk = (property("sdk.version.compile") as String).toInt()
     ndkVersion = property("ndk.version") as String
@@ -122,7 +195,6 @@ android {
     externalNativeBuild {
         cmake {
             path = file("CMakeLists.txt")
-            buildStagingDirectory = file(".cmake")
             version = property("cmake.version") as String
         }
     }
@@ -130,8 +202,22 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    testOptions.unitTests.all {
-        it.useJUnitPlatform()
+    testOptions {
+        unitTests.all {
+            it.enabled = false
+        }
+        @Suppress("UnstableApiUsage")
+        managedDevices {
+            localDevices {
+                create("emulator") {
+                    device = "Pixel 2"
+                    apiLevel = 33
+                    systemImageSource = "aosp-atd"
+                    testedAbi = "x86_64"
+                    require64Bit = true
+                }
+            }
+        }
     }
     packaging.resources {
         excludes += setOf(
@@ -146,6 +232,7 @@ android {
 
 tasks.register<Jar>("javadocJar") {
     group = "documentation"
+    description = "Create javadoc JAR"
     archiveClassifier.set("javadoc")
     from(files(rootDir.resolve("README.md")))
 }
@@ -244,7 +331,7 @@ tasks.withType<DokkaGeneratePublicationTask> {
             into(tmpDir)
             filter { file ->
                 file.replaceFirst("# KTreeSitter", "# Module KTreeSitter")
-                    .replaceFirst("\$ktreesitterVersion", "\"$version\"")
+                    .replaceFirst($$"$ktreesitterVersion", """"$version"""")
                     .replace("[x]", "&#x2611;").replace("[ ]", "&#x2610;")
             }
         }
@@ -262,54 +349,40 @@ tasks.withType<KotlinJvmCompile>().configureEach {
     }
 }
 
-// TODO: replace with cmake
-@Suppress("DEPRECATION")
-tasks.withType<CInteropProcess>().configureEach {
-    if (name.startsWith("cinteropTest")) return@configureEach
+val configureJniLibrary = tasks.register<Exec>("configureJniLibrary") {
+    group = "build"
+    description = "Configure the JNI library"
+    executable = "cmake"
+    standardOutput = nullOutputStream()
 
-    val runKonan = File(konanHome.get()).resolve("bin")
-        .resolve(if (os.isWindows) "run_konan.bat" else "run_konan").path
-    val libFile = libsDir.dir(konanTarget.name).file(
-        "${konanTarget.family.staticPrefix}tree-sitter.${konanTarget.family.staticSuffix}"
-    ).asFile
-    val objectFile = treesitterDir.resolve("lib.o")
+    args("-S", projectDir.unixPath, "-B", jniBuildDir.get().asFile.unixPath)
+    args("-G", "Ninja", "-DCMAKE_BUILD_TYPE=RelWithDebInfo")
+    args("-DCMAKE_INSTALL_PREFIX=" + projectDir.resolve("src/jvmMain/resources").unixPath)
+    args("-DCMAKE_INSTALL_${if (os.isWindows) "BINDIR" else "LIBDIR"}=$jniLibDir")
+    environment("JAVA_HOME", System.getProperty("java.home"))
 
-    doFirst {
-        val argsFile = File.createTempFile("args", null)
-        argsFile.deleteOnExit()
-        argsFile.writer().useToRun {
-            write("-I" + treesitterDir.resolve("lib/src").unixPath + "\n")
-            write("-I" + treesitterDir.resolve("lib/include").unixPath + "\n")
-            write("-DTREE_SITTER_HIDE_SYMBOLS\n")
-            write("-D_DEFAULT_SOURCE\n")
-            write("-D_POSIX_C_SOURCE=200112L\n")
-            write("-fvisibility=hidden\n")
-            write("-std=c11\n")
-            write("-O2\n")
-            write("-g\n")
-            write("-c\n")
-            write(treesitterDir.resolve("lib/src/lib.c").unixPath + "\n")
-        }
-
-        exec {
-            executable = runKonan
-            workingDir = treesitterDir
-            standardOutput = nullOutputStream()
-            args("clang", "clang", konanTarget.name, "@" + argsFile.path)
-        }
-
-        exec {
-            executable = runKonan
-            workingDir = treesitterDir
-            standardOutput = nullOutputStream()
-            args("llvm", "llvm-ar", "rcs", libFile.path, objectFile.path)
-        }
-    }
-
-    outputs.file(libFile)
+    inputs.file("CMakeLists.txt")
+    outputs.file(jniBuildDir.map { it.file("CMakeCache.txt") })
 }
 
+val buildJniLibrary = tasks.register<Exec>("buildJniLibrary") {
+    group = "build"
+    description = "Build the JNI library"
+    executable = "cmake"
+    standardOutput = nullOutputStream()
+
+    args("--build", jniBuildDir.get().asFile.path, "--target", "install")
+
+    inputs.files(configureJniLibrary)
+    inputs.files("src/jni")
+    inputs.files(treesitterDir.resolve("lib/src"), treesitterDir.resolve("lib/include"))
+    outputs.dir(projectDir.resolve("src/jvmMain/resources").resolve(jniLibDir))
+}
+
+tasks.getByName("jvmProcessResources").mustRunAfter(buildJniLibrary)
+
 tasks.getByName<Test>("jvmTest") {
+    dependsOn(buildJniLibrary)
     useJUnitPlatform()
     reports.junitXml.apply {
         required.set(true)

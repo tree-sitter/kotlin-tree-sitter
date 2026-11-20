@@ -5,22 +5,19 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
-import org.gradle.api.NonNullApi;
 import org.gradle.api.file.DirectoryProperty;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.tasks.*;
 
 /** The task that generates the source files for the grammar. */
-@NonNullApi
 @CacheableTask
+@SuppressWarnings("NewApi")
 public abstract class GrammarFilesTask extends DefaultTask {
     private File grammarDir;
 
@@ -290,15 +287,16 @@ public abstract class GrammarFilesTask extends DefaultTask {
         writeFile(interopFile, template);
     }
 
-    private Path relative(Path file) {
-        return getGeneratedSrc().get().getAsFile().toPath().getParent().relativize(file);
+    private String relative(Path file) {
+        var parent = getGeneratedSrc().get().getAsFile().toPath().getParent();
+        return parent.relativize(file).toString().replace(File.separatorChar, '/');
     }
 
     private String srcFiles() {
         var grammarSrcDir = grammarDir.toPath().resolve("src");
         var scannerFile = grammarSrcDir.resolve("scanner.c");
         if (!scannerFile.toFile().exists()) {
-            return relative(grammarSrcDir.resolve("parser.c")).toString();
+            return relative(grammarSrcDir.resolve("parser.c"));
         }
         return String.format("%s %s",
             relative(grammarSrcDir.resolve("parser.c")),

@@ -22,9 +22,9 @@ expect class LookaheadIterator : AbstractIterator<LookaheadIterator.Symbol> {
     /**
      * The current symbol name.
      *
-     * Newly created lookahead iterators will contain the `ERROR` symbol.
+     * Newly created lookahead iterators are not positioned on a symbol.
      */
-    val currentSymbolName: String
+    val currentSymbolName: String?
 
     /**
      * Reset the lookahead iterator the given [state] and, optionally, another [language].
@@ -45,6 +45,7 @@ expect class LookaheadIterator : AbstractIterator<LookaheadIterator.Symbol> {
     override fun computeNext()
 
     /** A class that pairs a symbol ID with its name. */
+    @Suppress("unused")
     class Symbol(id: UShort, name: String) {
         val id: UShort
         val name: String

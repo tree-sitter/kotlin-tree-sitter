@@ -1,59 +1,27 @@
 package io.github.treesitter.ktreesitter
 
-actual class Query @Throws(QueryError::class) actual constructor(
+/**
+ * A class that represents a set of patterns which match nodes in a syntax tree.
+ */
+actual class Query private constructor(
+    internal val self: Long,
     private val language: Language,
-    private val source: String
+    private val source: String,
+    predicates: List<MutableList<QueryPredicate>>? = null,
+    settingList: List<MutableMap<String, String?>>? = null,
+    assertionList: List<MutableMap<String, Pair<String?, Boolean>>>? = null,
+    captureNames: List<String>? = null,
+    stringValues: List<String>? = null
 ) {
-    internal val self: Long = init(language.self, source)
-
-    internal val predicates: List<MutableList<QueryPredicate>>
-
-    private val settingList: List<MutableMap<String, String?>>
-
-    private val assertionList: List<MutableMap<String, Pair<String?, Boolean>>>
-
-    /** The number of patterns in the query. */
-    @get:JvmName("getPatternCount")
-    actual val patternCount: UInt
-        get() = nativePatternCount().toUInt()
-
-    /** The number of captures in the query. */
-    @get:JvmName("getCaptureCount")
-    @Deprecated("captureCount is deprecated.", ReplaceWith("captureNames.size"))
-    actual val captureCount: UInt
-        get() = nativeCaptureCount().toUInt()
-
     /**
-     * The capture names used in the query.
+     * Create a new query from a particular language and a
+     * string containing one or more S-expression patterns.
      *
-     * @since 0.25.0
+     * @throws [QueryError] If any error occurred while creating the query.
      */
-    actual val captureNames: List<String>
-
-    /**
-     * The string literals used in the query.
-     *
-     * @since 0.25.0
-     */
-    actual val stringValues: List<String>
-
-    init {
-        RefCleaner(this, CleanAction(self))
-
-        predicates = List(nativePatternCount()) { mutableListOf() }
-        settingList = List(nativePatternCount()) { mutableMapOf() }
-        assertionList = List(nativePatternCount()) { mutableMapOf() }
-        captureNames = List(nativeCaptureCount()) {
-            checkNotNull(captureNameForId(it)) {
-                "Failed to get capture name at index $it"
-            }
-        }
-        stringValues = List(stringCount()) {
-            checkNotNull(stringValueForId(it)) {
-                "Failed to get string value at index $it"
-            }
-        }
-
+    @Throws(QueryError::class)
+    actual constructor(language: Language, source: String) :
+        this(init(language.self, source), language, source) {
         for (i in 0U..<patternCount) {
             val tokens = predicatesForPattern(i.toInt()) ?: continue
             val offset = startByteForPattern(i)
@@ -238,7 +206,8 @@ actual class Query @Throws(QueryError::class) actual constructor(
                                 val value = captureNames[t2.value]
                                 throw QueryError.Predicate(
                                     row,
-                                    "second argument to #$pred must be a string literal, got @$value"
+                                    "second argument to #$pred must be a string literal, " +
+                                        "got @$value"
                                 )
                             }
                             stringValues[t2.value]
@@ -263,6 +232,48 @@ actual class Query @Throws(QueryError::class) actual constructor(
             }
         }
     }
+
+    init {
+        RefCleaner(this, CleanAction(self))
+    }
+
+    /** The number of patterns in the query. */
+    @get:JvmName("getPatternCount")
+    actual val patternCount: UInt
+        get() = nativePatternCount().toUInt()
+
+    /** The number of captures in the query. */
+    @get:JvmName("getCaptureCount")
+    @Deprecated("captureCount is deprecated.", ReplaceWith("captureNames.size"))
+    actual val captureCount: UInt
+        get() = nativeCaptureCount().toUInt()
+
+    /**
+     * The capture names used in the query.
+     *
+     * @since 0.25.0
+     */
+    actual val captureNames: List<String> = captureNames ?: List(nativeCaptureCount()) {
+        checkNotNull(captureNameForId(it)) { "Failed to get capture name at index $it" }
+    }
+
+    /**
+     * The string literals used in the query.
+     *
+     * @since 0.25.0
+     */
+    actual val stringValues: List<String> = stringValues ?: List(stringCount()) {
+        checkNotNull(stringValueForId(it)) { "Failed to get string value at index $it" }
+    }
+
+    internal val predicates: List<MutableList<QueryPredicate>> =
+        predicates ?: List(nativePatternCount()) { mutableListOf() }
+
+    private val settingList: List<MutableMap<String, String?>> =
+        settingList ?: List(nativePatternCount()) { mutableMapOf() }
+
+    private val assertionList: List<MutableMap<String, Pair<String?, Boolean>>> =
+        assertionList ?: List(nativePatternCount()) { mutableMapOf() }
 
     /**
      * Execute the query on the given [Node].
@@ -390,6 +401,22 @@ actual class Query @Throws(QueryError::class) actual constructor(
         return nativeIsPatternGuaranteedAtStep(offset.toInt())
     }
 
+    /**
+     * Create a copy of the query.
+     *
+     * @since 0.27.0
+     */
+    actual fun copy() = Query(
+        copy(self),
+        language,
+        source,
+        predicates,
+        settingList,
+        assertionList,
+        captureNames,
+        stringValues
+    )
+
     override fun toString() = "Query(language=$language, source=$source)"
 
     private external fun nativePatternCount(): Int
@@ -430,6 +457,9 @@ actual class Query @Throws(QueryError::class) actual constructor(
         @JvmStatic
         @Throws(QueryError::class)
         private external fun init(language: Long, query: String): Long
+
+        @JvmStatic
+        private external fun copy(self: Long): Long
 
         @JvmStatic
         private external fun delete(self: Long)
