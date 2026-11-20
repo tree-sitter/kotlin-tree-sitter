@@ -12,7 +12,7 @@ actual class LookaheadIterator @Throws(IllegalArgumentException::class) internal
     language: Language,
     private val state: UShort
 ) : AbstractIterator<LookaheadIterator.Symbol>() {
-    private val self: Long = init(language.self, state).takeIf { it > 0L }
+    private val self: Long = init(language.self, state).takeIf { it != 0L }
         ?: throw IllegalArgumentException("State $state is not valid for $language")
 
     init {

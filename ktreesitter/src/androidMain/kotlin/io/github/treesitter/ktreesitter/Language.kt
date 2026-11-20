@@ -16,7 +16,7 @@ import dalvik.annotation.optimization.FastNative
  */
 actual class Language @Throws(IllegalArgumentException::class) actual constructor(language: Any) {
     @JvmField
-    internal val self: Long = (language as? Long)?.takeIf { it > 0L }
+    internal val self: Long = (language as? Long)?.takeIf { it != 0L }
         ?: throw IllegalArgumentException("Invalid language: $language")
 
     init {
